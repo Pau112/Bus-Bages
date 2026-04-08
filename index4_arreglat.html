@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Manresa · Barcelona</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding: 20px 0; min-height: 100vh; }
+    .app { width: 100%; max-width: 390px; background: #f0f0f0; min-height: 100vh; }
+
+    .header { background: #fff; padding: 14px 16px 10px; border-bottom: 0.5px solid #e0e0e0; }
+    .header h1 { font-size: 17px; font-weight: 600; color: #111; }
+    .header-sub { font-size: 12px; color: #888; margin-top: 2px; }
+
+    .day-banner { margin: 10px 12px 0; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+    .day-banner.feiner { background: #EAF3DE; border: 0.5px solid #97C459; }
+    .day-banner.festiu { background: #E6F1FB; border: 0.5px solid #85B7EB; }
+    .day-banner.dissabte { background: #FAEEDA; border: 0.5px solid #EF9F27; }
+    .day-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .feiner .day-icon { background: #C0DD97; }
+    .festiu .day-icon { background: #B5D4F4; }
+    .dissabte .day-icon { background: #FAC775; }
+    .day-info { flex: 1; }
+    .day-type { font-size: 13px; font-weight: 600; }
+    .feiner .day-type { color: #3B6D11; }
+    .festiu .day-type { color: #185FA5; }
+    .dissabte .day-type { color: #854F0B; }
+    .day-desc { font-size: 11px; margin-top: 1px; }
+    .feiner .day-desc { color: #639922; }
+    .festiu .day-desc { color: #378ADD; }
+    .dissabte .day-desc { color: #BA7517; }
+
+    .day-switch { display: flex; gap: 4px; margin: 8px 12px 0; }
+    .ds-btn { flex: 1; padding: 7px 4px; border: 0.5px solid #ddd; border-radius: 8px; font-size: 11px; text-align: center; cursor: pointer; background: #f5f5f5; color: #888; }
+    .ds-btn.active-f { background: #EAF3DE; color: #3B6D11; border-color: #97C459; font-weight: 600; }
+    .ds-btn.active-s { background: #FAEEDA; color: #854F0B; border-color: #EF9F27; font-weight: 600; }
+    .ds-btn.active-d { background: #E6F1FB; color: #185FA5; border-color: #85B7EB; font-weight: 600; }
+
+    .search-box { background: #fff; margin: 10px 12px 0; border-radius: 12px; border: 0.5px solid #e0e0e0; padding: 10px 12px; }
+    .search-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+    .search-row:first-child { border-bottom: 0.5px solid #eee; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-o { background: #378ADD; }
+    .dot-d { background: #D4537E; }
+    .search-row select { border: none; background: transparent; font-size: 13px; color: #111; flex: 1; outline: none; cursor: pointer; }
+
+    .btn-search { width: calc(100% - 24px); margin: 8px 12px 0; background: #378ADD; color: #fff; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .btn-search:active { opacity: 0.85; }
+
+    .section-label { font-size: 10px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 12px 4px; }
+    .bus-card { background: #fff; margin: 0 12px 7px; border-radius: 12px; border: 0.5px solid #e0e0e0; padding: 11px 12px; }
+    .bus-card.passed { opacity: 0.45; }
+    .bus-card.isnext { border: 1.5px solid #378ADD; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-time { font-size: 22px; font-weight: 600; color: #111; }
+    .card-sub { font-size: 12px; color: #888; margin-top: 2px; }
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+    .bg { background: #EAF3DE; color: #3B6D11; }
+    .ba { background: #FAEEDA; color: #854F0B; }
+    .br { background: #FCEBEB; color: #A32D2D; }
+    .bx { background: #f0f0f0; color: #888; }
+
+    .vote-section { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 9px; padding-top: 9px; border-top: 0.5px solid #eee; }
+    .vote-label { font-size: 10px; color: #999; margin-bottom: 3px; }
+    .vote-row { display: flex; gap: 3px; }
+    .vm { flex: 1; padding: 5px 2px; border: 0.5px solid #ddd; border-radius: 6px; font-size: 10px; text-align: center; cursor: pointer; background: #f5f5f5; color: #666; }
+    .vm.ag { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .vm.aa { background: #FAEEDA; color: #854F0B; border-color: #EF9F27; }
+    .vm.ar { background: #FCEBEB; color: #A32D2D; border-color: #F09595; }
+
+    .share-btn { width: 100%; margin-top: 7px; padding: 8px; border: 0.5px solid #ddd; border-radius: 8px; font-size: 11px; background: #f5f5f5; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .share-btn.on { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .share-confirm { font-size: 11px; color: #3B6D11; margin-top: 5px; text-align: center; padding: 4px; background: #EAF3DE; border-radius: 6px; }
+
+    .dot-pulse { width: 7px; height: 7px; border-radius: 50%; background: #639922; }
+    .tag-next { display: inline-block; background: #E6F1FB; color: #185FA5; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-bottom: 5px; }
+    .no-results { text-align: center; padding: 28px 16px; color: #999; font-size: 13px; }
+    .votes-count { font-size: 11px; color: #999; margin-top: 4px; }
+    .results-wrap { padding-bottom: 24px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Bus Manresa · Barcelona</h1>
+    <div class="header-sub">Monbus E22 · E23</div>
+  </div>
+
+  <div id="day-banner" class="day-banner feiner">
+    <div class="day-icon">📅</div>
+    <div class="day-info">
+      <div class="day-type" id="day-type-text">Dia feiner</div>
+      <div class="day-desc" id="day-desc-text">Servei complet · dilluns a divendres</div>
+    </div>
+  </div>
+
+  <div class="day-switch">
+  <div class="ds-btn active-f" id="btn-f">Feiner</div>
+</div>
+
+  <div class="search-box">
+    <div class="search-row">
+      <div class="dot dot-o"></div>
+      <select id="sel-orig">
+        <option value="manresa_est">Manresa — Estació d'autobusos</option>
+        <option value="manresa_val">Manresa — Plaça Valldaura</option>
+        <option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+        <option value="castellgali">Castellgalí — La Fàbrica</option>
+        <option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+        <option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+        <option value="monistrol_gom">Monistrol — Can Gomis</option>
+        <option value="olesa_clos" selected>Olesa de Montserrat — Rotonda Els Closos</option>
+        <option value="olesa_cat" selected>Olesa de Montserrat — Pl. Catalunya</option>
+        <option value="bcn_uni">Barcelona — Zona Universitària</option>
+        <option value="bcn_palau">Barcelona — Palau Reial</option>
+        <option value="bcn_mc">Barcelona — Maria Cristina</option>
+        <option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+        <option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+        <option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>
+      </select>
+    </div>
+    <div class="search-row">
+      <div class="dot dot-d"></div>
+      <select id="sel-dest">
+        <option value="manresa_est">Manresa — Estació d'autobusos</option>
+        <option value="manresa_val">Manresa — Plaça Valldaura</option>
+        <option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+        <option value="castellgali">Castellgalí — La Fàbrica</option>
+        <option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+        <option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+        <option value="monistrol_gom">Monistrol — Can Gomis</option>
+        <option value="olesa_clos" selected>Olesa de Montserrat — Rotonda Els Closos</option>
+        <option value="olesa_cat" selected>Olesa de Montserrat — Pl. Catalunya</option>
+        <option value="bcn_uni">Barcelona — Zona Universitària</option>
+        <option value="bcn_palau">Barcelona — Palau Reial</option>
+        <option value="bcn_mc">Barcelona — Maria Cristina</option>
+        <option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+        <option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+        <option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-search" onclick="doSearch()">Buscar horaris</button>
+
+  <div id="results" class="results-wrap"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyD0G3NS5Hofp9DnZRJKgVJ-Oriog47P0c4",
+  authDomain: "bus-bages-481b5.firebaseapp.com",
+  projectId: "bus-bages-481b5",
+  storageBucket: "bus-bages-481b5.appspot.com",
+  messagingSenderId: "1043250771775",
+  appId: "1:1043250771775:web:42990cc3c56bb55b8b058a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
+    const userLocations = {};
+    let globalVotes = {};
+const T = {
+  feiner: [
+    {id:'f1',line:'E22',times:{
+  manresa_est:'5:30',manresa_val:'5:37',
+  bcn_uni:'6:35',bcn_palau:'6:37',bcn_mc:'6:39',
+  bcn_macia:'6:42',bcn_munt:'6:45',bcn_gran:'6:50'
+}},
+
+{id:'f2',line:'E23',times:{
+  olesa_clos:'6:00',olesa_cat:'6:02',
+  bcn_uni:'6:36',bcn_palau:'6:38',bcn_mc:'6:40'
+}},
+
+{id:'f3',line:'E22',times:{
+  manresa_est:'5:40',manresa_val:'5:47',
+  castellgali:'5:58',st_vicenc_pi:'6:02',
+  monistrol_alv:'6:13',monistrol_gom:'6:15',
+  olesa_clos:'6:25',olesa_cat:'6:27',
+  bcn_uni:'6:55',bcn_palau:'6:57',bcn_mc:'6:59',
+  bcn_macia:'7:02',bcn_munt:'7:05',bcn_gran:'7:10'
+}},
+
+{id:'f4',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  bcn_uni:'7:06',bcn_palau:'7:08',bcn_mc:'7:10'
+}},
+
+{id:'f5',line:'E23',times:{
+  monistrol_alv:'6:00',monistrol_gom:'6:02',
+  olesa_clos:'6:12',olesa_cat:'6:14',
+  bcn_uni:'6:51',bcn_palau:'6:53',bcn_mc:'6:55'
+}},
+
+{id:'f6',line:'E23',times:{
+  olesa_clos:'6:30',olesa_cat:'6:32',
+  bcn_uni:'7:21',bcn_palau:'7:23',bcn_mc:'7:25'
+}},
+
+{id:'f7',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  castellgali:'6:18',st_vicenc_pi:'6:22',
+  monistrol_alv:'6:33',monistrol_gom:'6:35',
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:15',bcn_palau:'7:17',bcn_mc:'7:19',
+  bcn_macia:'7:22',bcn_munt:'7:25',bcn_gran:'7:30'
+}},
+
+{id:'f8',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29',
+  bcn_macia:'7:32',bcn_munt:'7:35',bcn_gran:'7:40'
+}},
+
+{id:'f9',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29'
+}},
+
+{id:'f10',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:45',bcn_palau:'7:47',bcn_mc:'7:49',
+  bcn_macia:'7:52',bcn_munt:'7:55',bcn_gran:'8:00'
+}},
+
+{id:'f11',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:51',bcn_palau:'7:53',bcn_mc:'7:55'
+}},
+
+{id:'f12',line:'E22',times:{
+  manresa_est:'6:40',manresa_val:'6:47',
+  bcn_uni:'7:41',bcn_palau:'7:43',bcn_mc:'7:45'
+}},
+
+{id:'f13',line:'E23',times:{
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:36',bcn_palau:'7:38',bcn_mc:'7:40'
+}},
+
+{id:'f14',line:'E23',times:{
+  monistrol_alv:'6:50',monistrol_gom:'6:52',
+  olesa_clos:'7:02',olesa_cat:'7:04',
+  bcn_uni:'7:56',bcn_palau:'7:58',bcn_mc:'8:00'
+}},
+
+{id:'f15',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:05',bcn_palau:'8:07',bcn_mc:'8:09',
+  bcn_macia:'8:12',bcn_munt:'8:15',bcn_gran:'8:20'
+}},
+
+{id:'f16',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:01',bcn_palau:'8:03',bcn_mc:'8:05'
+}},
+
+{id:'f17',line:'E22',times:{
+  manresa_est:'7:00',manresa_val:'7:07',
+  bcn_uni:'8:35',bcn_palau:'8:37',bcn_mc:'8:39',
+  bcn_macia:'8:42',bcn_munt:'8:45',bcn_gran:'8:50'
+}},
+
+{id:'f18',line:'E22',times:{
+  manresa_est:'7:15',manresa_val:'7:22',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f19',line:'E23',times:{
+  monistrol_alv:'7:15',monistrol_gom:'7:17',
+  olesa_clos:'7:27',olesa_cat:'7:29',
+  bcn_uni:'8:21',bcn_palau:'8:23',bcn_mc:'8:25'
+}},
+
+{id:'f20',line:'E23',times:{
+  monistrol_alv:'7:20',monistrol_gom:'7:22',
+  olesa_clos:'7:32',olesa_cat:'7:34',
+  bcn_uni:'8:30',bcn_palau:'8:32',bcn_mc:'8:34',
+  bcn_macia:'8:37',bcn_munt:'8:40',bcn_gran:'8:45'
+}},
+
+{id:'f21',line:'E23',times:{
+  olesa_clos:'7:45',olesa_cat:'7:47',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f22',line:'E22',times:{
+  manresa_est:'7:20',manresa_val:'7:27',
+  castellgali:'7:38',st_vicenc_pi:'7:42',
+  monistrol_alv:'7:53',monistrol_gom:'7:55',
+  olesa_clos:'8:05',olesa_cat:'8:07',
+  bcn_uni:'9:15',bcn_palau:'9:17',bcn_mc:'9:19',
+  bcn_macia:'9:22',bcn_munt:'9:25',bcn_gran:'9:30'
+}},
+
+{id:'f23',line:'E22',times:{
+  manresa_est:'7:30',manresa_val:'7:37',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f24',line:'E22',times:{
+  manresa_est:'7:45',manresa_val:'7:52',
+  bcn_uni:'9:10',bcn_palau:'9:12',bcn_mc:'9:14',
+  bcn_macia:'9:17',bcn_munt:'9:20',bcn_gran:'9:25'
+}},
+
+{id:'f25',line:'E23',times:{
+  monistrol_alv:'7:50',monistrol_gom:'7:52',
+  olesa_clos:'8:02',olesa_cat:'8:04',
+  bcn_uni:'8:50',bcn_palau:'8:52',bcn_mc:'8:54',
+  bcn_macia:'8:57',bcn_munt:'9:00',bcn_gran:'9:05'
+}},
+
+{id:'f26',line:'E23',times:{
+  olesa_clos:'8:15',olesa_cat:'8:17',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f27',line:'E22',times:{
+  manresa_est:'8:00',manresa_val:'8:07',
+  manresa_hos:'8:15',
+  bcn_uni:'9:20',bcn_palau:'9:22',bcn_mc:'9:24',
+  bcn_macia:'9:27',bcn_munt:'9:30',bcn_gran:'9:35'
+}},
+
+{id:'f28',line:'E22',times:{
+  manresa_est:'8:15',manresa_val:'8:22',
+  bcn_uni:'9:25',bcn_palau:'9:27',bcn_mc:'9:29',
+  bcn_macia:'9:32',bcn_munt:'9:35',bcn_gran:'9:40'
+}},
+
+{id:'f29',line:'E22',times:{
+  manresa_est:'8:30',manresa_val:'8:37',
+  bcn_uni:'9:45',bcn_palau:'9:47',bcn_mc:'9:49',
+  bcn_macia:'9:52',bcn_munt:'9:55',bcn_gran:'10:00'
+}},
+
+{id:'f30',line:'E23',times:{
+  olesa_clos:'8:45',olesa_cat:'8:47',
+  bcn_uni:'9:36',bcn_palau:'9:38',bcn_mc:'9:40'
+}},
+
+{id:'f31',line:'E22',times:{
+  manresa_est:'8:45',manresa_val:'8:52',
+  bcn_uni:'10:00',bcn_palau:'10:02',bcn_mc:'10:04',
+  bcn_macia:'10:07',bcn_munt:'10:10',bcn_gran:'10:15'
+}},
+
+{id:'f32',line:'E23',times:{
+  monistrol_alv:'9:00',monistrol_gom:'9:02',
+  olesa_clos:'9:12',olesa_cat:'9:14',
+  bcn_uni:'9:51',bcn_palau:'9:53',bcn_mc:'9:55'
+}},
+
+{id:'f33',line:'E22',times:{
+  manresa_est:'9:00',manresa_val:'9:07',
+  bcn_uni:'10:06',bcn_palau:'10:08',bcn_mc:'10:10'
+}},
+
+{id:'f34',line:'E22',times:{
+  manresa_est:'9:15',manresa_val:'9:22',
+  castellgali:'9:33',st_vicenc_pi:'9:37',
+  monistrol_alv:'9:48',monistrol_gom:'9:50',
+  olesa_clos:'10:00',olesa_cat:'10:02',
+  bcn_uni:'10:30',bcn_palau:'10:32',bcn_mc:'10:34',
+  bcn_macia:'10:37',bcn_munt:'10:40',bcn_gran:'10:45'
+}},
+
+{id:'f35',line:'E22',times:{
+  manresa_est:'9:30',manresa_val:'9:37',
+  bcn_uni:'10:35',bcn_palau:'10:37',bcn_mc:'10:39',
+  bcn_macia:'10:42',bcn_munt:'10:45',bcn_gran:'10:50'
+}},
+
+{id:'f36',line:'E23',times:{
+  monistrol_alv:'9:45',monistrol_gom:'9:47',
+  olesa_clos:'9:57',olesa_cat:'9:59',
+  bcn_uni:'10:36',bcn_palau:'10:38',bcn_mc:'10:40'
+}},
+
+{id:'f37',line:'E22',times:{
+  manresa_est:'10:00',manresa_val:'10:07',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f38',line:'E23',times:{
+  olesa_clos:'10:25',olesa_cat:'10:27',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f39',line:'E22',times:{
+  manresa_est:'10:30',manresa_val:'10:37',
+  bcn_uni:'11:36',bcn_palau:'11:38',bcn_mc:'11:40'
+}},
+
+{id:'f40',line:'E23',times:{
+  monistrol_alv:'11:00',monistrol_gom:'11:02',
+  olesa_clos:'11:12',olesa_cat:'11:14',
+  bcn_uni:'11:55',bcn_palau:'11:57',bcn_mc:'11:59',
+  bcn_macia:'12:02',bcn_munt:'12:05',bcn_gran:'12:10'
+}},
+
+{id:'f41',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  bcn_uni:'12:05',bcn_palau:'12:07',bcn_mc:'12:09',
+  bcn_macia:'12:12',bcn_munt:'12:15',bcn_gran:'12:20'
+}},
+
+{id:'f42',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  castellgali:'11:18',st_vicenc_pi:'11:22',
+  monistrol_alv:'11:33',monistrol_gom:'11:35',
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:30',bcn_palau:'12:32',bcn_mc:'12:34',
+  bcn_macia:'12:37',bcn_munt:'12:40',bcn_gran:'12:45'
+}},
+
+{id:'f43',line:'E22',times:{
+  manresa_est:'11:30',manresa_val:'11:37',
+  bcn_uni:'12:35',bcn_palau:'12:37',bcn_mc:'12:39',
+  bcn_macia:'12:42',bcn_munt:'12:45',bcn_gran:'12:50'
+}},
+
+{id:'f44',line:'E23',times:{
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:26',bcn_palau:'12:28',bcn_mc:'12:30'
+}},
+
+{id:'f45',line:'E22',times:{
+  manresa_est:'12:00',manresa_val:'12:07',
+  bcn_uni:'13:06',bcn_palau:'13:08',bcn_mc:'13:10'
+}},
+
+{id:'f46',line:'E23',times:{
+  monistrol_alv:'12:25',monistrol_gom:'12:27',
+  olesa_clos:'12:37',olesa_cat:'12:39',
+  bcn_uni:'13:16',bcn_palau:'13:18',bcn_mc:'13:20'
+}},
+
+{id:'f47',line:'E22',times:{
+  manresa_est:'12:30',manresa_val:'12:37',
+  bcn_uni:'13:35',bcn_palau:'13:37',bcn_mc:'13:39',
+  bcn_macia:'13:42',bcn_munt:'13:45',bcn_gran:'13:50'
+}},
+
+{id:'f48',line:'E23',times:{
+  olesa_clos:'13:00',olesa_cat:'13:02',
+  bcn_uni:'13:41',bcn_palau:'13:43',bcn_mc:'13:45'
+}},
+
+{id:'f49',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f50',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  castellgali:'13:18',st_vicenc_pi:'13:22',
+  monistrol_alv:'13:33',monistrol_gom:'13:35',
+  olesa_clos:'13:45',olesa_cat:'13:47',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f51',line:'E22',times:{
+  manresa_est:'13:30',manresa_val:'13:37',
+  bcn_uni:'14:36',bcn_palau:'14:38',bcn_mc:'14:40'
+}},
+
+{id:'f52',line:'E22',times:{
+  manresa_est:'14:00',manresa_val:'14:07',
+  bcn_uni:'15:05',bcn_palau:'15:07',bcn_mc:'15:09',
+  bcn_macia:'15:12',bcn_munt:'15:15',bcn_gran:'15:20'
+}},
+
+{id:'f53',line:'E23',times:{
+  olesa_clos:'14:00',olesa_cat:'14:02',
+  bcn_uni:'14:40',bcn_palau:'14:42',bcn_mc:'14:44',
+  bcn_macia:'14:47',bcn_munt:'14:50',bcn_gran:'14:55'
+}},
+
+{id:'f54',line:'E22',times:{
+  manresa_est:'14:30',manresa_val:'14:37',
+  bcn_uni:'15:36',bcn_palau:'15:38',bcn_mc:'15:40'
+}},
+
+{id:'f55',line:'E23',times:{
+  monistrol_alv:'14:40',monistrol_gom:'14:42',
+  olesa_clos:'14:52',olesa_cat:'14:54',
+  bcn_uni:'15:31',bcn_palau:'15:33',bcn_mc:'15:35'
+}},
+
+{id:'f56',line:'E22',times:{
+  manresa_est:'14:50',manresa_val:'14:57',
+  castellgali:'15:08',st_vicenc_pi:'15:12',
+  monistrol_alv:'15:23',monistrol_gom:'15:25',
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:20',bcn_palau:'16:22',bcn_mc:'16:24',
+  bcn_macia:'16:27',bcn_munt:'16:30',bcn_gran:'16:35'
+}},
+
+{id:'f57',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f58',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  manresa_hos:'15:15',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f59',line:'E22',times:{
+  manresa_est:'15:30',manresa_val:'15:37',
+  bcn_uni:'16:35',bcn_palau:'16:37',bcn_mc:'16:39',
+  bcn_macia:'16:42',bcn_munt:'16:45',bcn_gran:'16:50'
+}},
+
+{id:'f60',line:'E23',times:{
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:16',bcn_palau:'16:18',bcn_mc:'16:20'
+}},
+
+{id:'f61',line:'E22',times:{
+  manresa_est:'16:00',manresa_val:'16:07',
+  bcn_uni:'17:06',bcn_palau:'17:08',bcn_mc:'17:10'
+}},
+
+{id:'f62',line:'E23',times:{
+  monistrol_alv:'16:00',monistrol_gom:'16:02',
+  olesa_clos:'16:12',olesa_cat:'16:14',
+  bcn_uni:'16:51',bcn_palau:'16:53',bcn_mc:'16:55'
+}},
+
+{id:'f63',line:'E23',times:{
+  olesa_clos:'16:30',olesa_cat:'16:32',
+  bcn_uni:'17:10',bcn_palau:'17:12',bcn_mc:'17:14',
+  bcn_macia:'17:17',bcn_munt:'17:20',bcn_gran:'17:25'
+}},
+
+{id:'f64',line:'E23',times:{
+  monistrol_alv:'16:30',monistrol_gom:'16:32',
+  olesa_clos:'16:42',olesa_cat:'16:44',
+  bcn_uni:'17:25',bcn_palau:'17:27',bcn_mc:'17:29',
+  bcn_macia:'17:32',bcn_munt:'17:35',bcn_gran:'17:40'
+}},
+
+{id:'f65',line:'E23',times:{
+  olesa_clos:'17:00',olesa_cat:'17:02',
+  bcn_uni:'17:36',bcn_palau:'17:38',bcn_mc:'17:40'
+}},
+
+{id:'f66',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f67',line:'E22',times:{
+  manresa_est:'16:20',manresa_val:'16:27',
+  castellgali:'16:38',st_vicenc_pi:'16:42',
+  monistrol_alv:'16:53',monistrol_gom:'16:55',
+  olesa_clos:'17:05',olesa_cat:'17:07',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f68',line:'E22',times:{
+  manresa_est:'16:30',manresa_val:'16:37',
+  bcn_uni:'17:40',bcn_palau:'17:42',bcn_mc:'17:44',
+  bcn_macia:'17:47',bcn_munt:'17:50',bcn_gran:'17:55'
+}},
+
+{id:'f69',line:'E22',times:{
+  manresa_est:'17:00',manresa_val:'17:07',
+  bcn_uni:'18:06',bcn_palau:'18:08',bcn_mc:'18:10'
+}},
+
+{id:'f70',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:51',bcn_palau:'17:53',bcn_mc:'17:55'
+}},
+
+{id:'f71',line:'E23',times:{
+  monistrol_alv:'17:15',monistrol_gom:'17:17',
+  olesa_clos:'17:27',olesa_cat:'17:29',
+  bcn_uni:'17:56',bcn_palau:'17:58',bcn_mc:'18:00'
+}},
+
+{id:'f72',line:'E22',times:{
+  manresa_est:'17:30',manresa_val:'17:37',
+  bcn_uni:'18:40',bcn_palau:'18:42',bcn_mc:'18:44',
+  bcn_macia:'18:47',bcn_munt:'18:50',bcn_gran:'18:55'
+}},
+
+{id:'f73',line:'E23',times:{
+  olesa_clos:'17:50',olesa_cat:'17:52',
+  bcn_uni:'18:31',bcn_palau:'18:33',bcn_mc:'18:35'
+}},
+
+{id:'f74',line:'E22',times:{
+  manresa_est:'17:45',manresa_val:'17:52',
+  bcn_uni:'18:51',bcn_palau:'18:53',bcn_mc:'18:55'
+}},
+
+{id:'f75',line:'E23',times:{
+  monistrol_alv:'18:15',monistrol_gom:'18:17',
+  olesa_clos:'18:27',olesa_cat:'18:29',
+  bcn_uni:'19:11',bcn_palau:'19:13',bcn_mc:'19:15'
+}},
+
+{id:'f76',line:'E23',times:{
+  olesa_clos:'18:30',olesa_cat:'18:32',
+  bcn_uni:'19:21',bcn_palau:'19:23',bcn_mc:'19:25'
+}},
+
+{id:'f77',line:'E22',times:{
+  manresa_est:'18:00',manresa_val:'18:07',
+  castellgali:'18:18',st_vicenc_pi:'18:22',
+  monistrol_alv:'18:33',monistrol_gom:'18:35',
+  olesa_clos:'18:45',olesa_cat:'18:47',
+  bcn_uni:'19:30',bcn_palau:'19:32',bcn_mc:'19:34',
+  bcn_macia:'19:37',bcn_munt:'19:40',bcn_gran:'19:45'
+}},
+
+{id:'f78',line:'E22',times:{
+  manresa_est:'18:15',manresa_val:'18:22',
+  bcn_uni:'19:20',bcn_palau:'19:22',bcn_mc:'19:24',
+  bcn_macia:'19:27',bcn_munt:'19:30',bcn_gran:'19:35'
+}},
+
+{id:'f79',line:'E23',times:{
+  monistrol_alv:'18:30',monistrol_gom:'18:32',
+  olesa_clos:'18:42',olesa_cat:'18:44',
+  bcn_uni:'19:25',bcn_palau:'19:27',bcn_mc:'19:29',
+  bcn_mc:'19:32',bcn_macia:'19:35',bcn_munt:'19:40'
+}},
+
+{id:'f80',line:'E22',times:{
+  manresa_est:'18:30',manresa_val:'18:37',
+  bcn_uni:'19:35',bcn_palau:'19:37',bcn_mc:'19:39',
+  bcn_macia:'19:42',bcn_munt:'19:45',bcn_gran:'19:50'
+}},
+
+{id:'f81',line:'E23',times:{
+  olesa_clos:'18:50',olesa_cat:'18:52',
+  bcn_uni:'19:40',bcn_palau:'19:42',bcn_mc:'19:44',
+  bcn_macia:'19:47',bcn_munt:'19:50',bcn_gran:'19:55'
+}},
+
+{id:'f82',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f83',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  castellgali:'19:18',st_vicenc_pi:'19:22',
+  monistrol_alv:'19:33',monistrol_gom:'19:35',
+  olesa_clos:'19:45',olesa_cat:'19:47',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f84',line:'E22',times:{
+  manresa_est:'19:15',manresa_val:'19:22',
+  bcn_uni:'20:25',bcn_palau:'20:27',bcn_mc:'20:29',
+  bcn_macia:'20:32',bcn_munt:'20:35',bcn_gran:'20:40'
+}},
+
+{id:'f85',line:'E22',times:{
+  manresa_est:'19:30',manresa_val:'19:37',
+  bcn_uni:'20:36',bcn_palau:'20:38',bcn_mc:'20:40'
+}},
+
+{id:'f86',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  bcn_uni:'21:06',bcn_palau:'21:08',bcn_mc:'21:10'
+}},
+
+{id:'f91',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  castellgali:'20:18',st_vicenc_pi:'20:22',
+  monistrol_alv:'20:33',monistrol_gom:'20:35',
+  olesa_clos:'20:45',olesa_cat:'20:47',
+  bcn_uni:'21:15',bcn_palau:'21:17',bcn_mc:'21:19',
+  bcn_macia:'21:22',bcn_munt:'21:25',bcn_gran:'21:30'
+}},
+
+{id:'f92',line:'E23',times:{
+  olesa_clos:'20:30',olesa_cat:'20:37',
+  bcn_uni:'21:40',bcn_palau:'21:42',bcn_mc:'21:44',
+  bcn_macia:'21:47',bcn_munt:'21:50',bcn_gran:'21:55'
+}},
+
+{id:'f93',line:'E23',times:{
+  monistrol_alv:'21:00',monistrol_gom:'21:02',
+  olesa_clos:'21:12',olesa_cat:'21:14',
+  bcn_uni:'21:56',bcn_palau:'21:58',bcn_mc:'22:00'
+}},
+
+{id:'f94',line:'E22',times:{
+  manresa_est:'21:00',manresa_val:'21:07',
+  manresa_hos:'21:15',
+  bcn_uni:'22:05',bcn_palau:'22:07',bcn_mc:'22:09',
+  bcn_macia:'22:12',bcn_munt:'22:15',bcn_gran:'22:20'
+}},
+
+{id:'f95',line:'E23',times:{
+  olesa_clos:'22:45',
+  bcn_uni:'23:21',bcn_palau:'23:23',bcn_mc:'23:25'
+}},
+
+{id:'f96',line:'E22',times:{
+  manresa_est:'22:15',manresa_val:'22:22',
+  castellgali:'22:33',st_vicenc_pi:'22:37',
+  monistrol_alv:'22:48',monistrol_gom:'22:50',
+  olesa_clos:'23:00',olesa_cat:'23:02',
+  bcn_uni:'23:45',bcn_palau:'23:47',bcn_mc:'23:49',
+  bcn_macia:'23:52',bcn_munt:'23:55',bcn_gran:'0:00'
+}},
+  ],
+};
+
+const dow = new Date().getDay();
+let currentDay = dow === 0 ? 'diumenge' : dow === 6 ? 'dissabte' : 'feiner';
+let myVotes = {}, sharing = {};
+
+function toMins(t) {
+  if (!t) return -1;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function nowMins() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+function setDay(d) {
+  currentDay = d;
+  const banner = document.getElementById('day-banner');
+  const typeEl = document.getElementById('day-type-text');
+  const descEl = document.getElementById('day-desc-text');
+  banner.className = 'day-banner';
+  ['btn-f','btn-s','btn-d'].forEach(id => document.getElementById(id).className = 'ds-btn');
+  if (d === 'feiner') {
+    banner.classList.add('feiner');
+    typeEl.textContent = 'Dia feiner';
+    descEl.textContent = 'Servei complet · dilluns a divendres (excepte agost)';
+    document.getElementById('btn-f').classList.add('active-f');
+  } else if (d === 'dissabte') {
+    banner.classList.add('dissabte');
+    typeEl.textContent = 'Dissabte i festiu';
+    descEl.textContent = 'Servei reduït de cap de setmana i dies festius';
+    document.getElementById('btn-s').classList.add('active-s');
+  } else {
+    banner.classList.add('festiu');
+    typeEl.textContent = 'Diumenge';
+    descEl.textContent = 'Servei de diumenge (excepte festius)';
+    document.getElementById('btn-d').classList.add('active-d');
+  }
+  doSearch();
+}
+
+function loadVotes() {
+  // Escoltar vots en temps real
+  db.collection("votes").onSnapshot(snapshot => {
+    globalVotes = {};
+    snapshot.forEach(doc => {
+      const v = doc.data();
+      const key = v.tripId + '_' + v.type;
+      globalVotes[key] = v.value;
+    });
+    doSearch();
+  });
+
+  // Escoltar ubicacions en temps real - aixi tots veuen les de tothom
+  db.collection("locations").onSnapshot(snapshot => {
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      // Nomes mostrar ubicacions de les ultimes 2 hores
+      if (Date.now() - d.time < 2 * 60 * 60 * 1000) {
+        userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora };
+      } else {
+        delete userLocations[d.tripId];
+      }
+    });
+    doSearch();
+  });
+}
+
+function doSearch() {
+  const orig = document.getElementById('sel-orig').value;
+  const dest = document.getElementById('sel-dest').value;
+  if (orig === dest) {
+    document.getElementById('results').innerHTML = '<div class="no-results">Selecciona parades diferents.</div>';
+    return;
+  }
+  const trips = (T[currentDay] || [])
+    .filter(t => t.times[orig] && t.times[dest])
+    .sort((a, b) => toMins(a.times[orig]) - toMins(b.times[orig]));
+
+  const now = nowMins();
+  let passed = null, nextList = [];
+  for (const t of trips) {
+    if (toMins(t.times[orig]) <= now) passed = t;
+    else nextList.push(t);
+  }
+
+  let html = '';
+  if (passed) {
+    html += '<p class="section-label">Bus anterior</p>';
+    html += renderCard(passed, orig, dest, 'passed');
+  }
+  if (nextList.length > 0) {
+    html += '<p class="section-label">Proper bus</p>';
+    html += renderCard(nextList[0], orig, dest, 'next');
+    if (nextList.length > 1) {
+      html += '<p class="section-label">Següents busos</p>';
+      for (let i = 1; i < Math.min(nextList.length, 5); i++)
+        html += renderCard(nextList[i], orig, dest, '');
+    }
+  }
+  if (!passed && !nextList.length)
+    html = '<div class="no-results">No hi ha busos per a aquesta ruta avui.</div>';
+
+  document.getElementById('results').innerHTML = html;
+}
+
+function renderCard(trip, orig, dest, type) {
+  const dep = trip.times[orig];
+  const arr = trip.times[dest];
+  const isPassed = type === 'passed';
+  const isNext = type === 'next';
+  const myO = globalVotes[trip.id + '_occ'] || myVotes[trip.id + '_occ'];
+  const myT = globalVotes[trip.id + '_time'] || myVotes[trip.id + '_time'];
+
+  const occ = myO;
+  let occBadge = occ === 'ple' ? `<span class="badge br">Ple</span>`
+    : occ === 'mig' ? `<span class="badge ba">Mig ple</span>`
+    : occ === 'buit' ? `<span class="badge bg">Buit</span>`
+    : isPassed ? `<span class="badge bx">Sense vots</span>` : '';
+
+  let timeBadge = myT === 'tard' ? `<span class="badge ba">Retard</span>`
+    : myT === 'punt' ? `<span class="badge bg">Puntual</span>` : '';
+
+  const shareConfirm = sharing[trip.id]
+    ? `<div class="share-confirm">Ubicació compartida a les ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')} · gràcies!</div>`
+    : '';
+
+  const voteSection = !isPassed ? `
+    <div class="vote-section">
+      <div>
+        <div class="vote-label">Ocupació</div>
+        <div class="vote-row">
+          <div class="vm ${myO==='buit'?'ag':''}" onclick="cv('${trip.id}','occ','buit')">Buit</div>
+          <div class="vm ${myO==='mig'?'aa':''}" onclick="cv('${trip.id}','occ','mig')">Mig</div>
+          <div class="vm ${myO==='ple'?'ar':''}" onclick="cv('${trip.id}','occ','ple')">Ple</div>
+        </div>
+      </div>
+      <div>
+        <div class="vote-label">Puntualitat</div>
+        <div class="vote-row">
+          <div class="vm ${myT==='punt'?'ag':''}" onclick="cv('${trip.id}','time','punt')">Puntual</div>
+          <div class="vm ${myT==='tard'?'aa':''}" onclick="cv('${trip.id}','time','tard')">Tard</div>
+        </div>
+      </div>
+    </div>
+    <button class="share-btn ${sharing[trip.id]?'on':''}" onclick="ts('${trip.id}')" ${sharing[trip.id]?'disabled':''}>
+      ${sharing[trip.id]?'Ubicació enviada':'Estic en aquest bus · comparteix ubicació'}
+    </button>
+
+    ${userLocations[trip.id] ? `
+  <div style="margin-top:10px;">
+    <iframe
+      width="100%"
+      height="180"
+      style="border-radius:10px;border:0;"
+      loading="lazy"
+      src="https://www.openstreetmap.org/export/embed.html?bbox=${
+        userLocations[trip.id].lng - 0.01
+      }%2C${
+        userLocations[trip.id].lat - 0.01
+      }%2C${
+        userLocations[trip.id].lng + 0.01
+      }%2C${
+        userLocations[trip.id].lat + 0.01
+      }&marker=${
+        userLocations[trip.id].lat
+      }%2C${
+        userLocations[trip.id].lng
+      }">
+    </iframe>
+  </div>
+` : ''}
+
+    ${shareConfirm}` : '';
+
+  return `<div class="bus-card${isNext?' isnext':isPassed?' passed':''}">
+    ${isNext ? '<div class="tag-next">Proper bus</div>' : ''}
+    <div class="card-top">
+      <div>
+        <div class="card-time">${dep}</div>
+        <div class="card-sub">Arr. ${arr} · ${trip.line}</div>
+      </div>
+      <div class="badges">${occBadge}${timeBadge}</div>
+    </div>
+    ${voteSection}
+  </div>`;
+}
+
+function cv(id, type, val) {
+  // set() amb ID fix evita duplicats i es instantani
+  const docId = id + '_' + type;
+  db.collection("votes").doc(docId).set({
+    tripId: id,
+    type: type,
+    value: val,
+    time: Date.now()
+  });
+  // actualitzem localment sense esperar Firebase (resposta inmediata)
+  globalVotes[docId] = val;
+  doSearch();
+}
+function ts(id) {
+  if (!navigator.geolocation) {
+    alert("El teu navegador no suporta geolocalitzacio.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const hora = new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0');
+
+      // Guardar a Firebase per que tothom ho vegi
+      db.collection("locations").doc(id).set({
+        tripId: id,
+        lat: lat,
+        lng: lng,
+        hora: hora,
+        time: Date.now()
+      });
+
+      sharing[id] = true;
+      doSearch();
+    },
+    (err) => {
+      alert("No s'ha pogut obtenir la ubicacio. Assegura't de donar permisos.");
+    }
+  );
+}
+
+loadVotes();
+setDay(currentDay);
+</script>
+</body>
+</html>
