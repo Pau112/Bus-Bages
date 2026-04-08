@@ -167,6 +167,7 @@ const db = firebase.firestore();
 
     const userLocations = {};
     let globalVotes = {};
+    let globalLocations = {};
 const T = {
   feiner: [
     {id:'f1',line:'E22',times:{
@@ -790,6 +791,18 @@ function loadVotes() {
   });
 }
 
+function loadLocations() {
+  db.collection("locations").onSnapshot(snapshot => {
+    globalLocations = {};
+
+    snapshot.forEach(doc => {
+      globalLocations[doc.id] = doc.data();
+    });
+
+    doSearch();
+  });
+}
+
 function doSearch() {
   const orig = document.getElementById('sel-orig').value;
   const dest = document.getElementById('sel-dest').value;
@@ -871,29 +884,32 @@ function renderCard(trip, orig, dest, type) {
       ${sharing[trip.id]?'Ubicació enviada':'Estic en aquest bus · comparteix ubicació'}
     </button>
 
-    ${userLocations[trip.id] ? `
-  <div style="margin-top:10px;">
-    <iframe
-      width="100%"
-      height="180"
-      style="border-radius:10px;border:0;"
-      loading="lazy"
-      src="https://www.openstreetmap.org/export/embed.html?bbox=${
-        userLocations[trip.id].lng - 0.01
-      }%2C${
-        userLocations[trip.id].lat - 0.01
-      }%2C${
-        userLocations[trip.id].lng + 0.01
-      }%2C${
-        userLocations[trip.id].lat + 0.01
-      }&marker=${
-        userLocations[trip.id].lat
-      }%2C${
-        userLocations[trip.id].lng
-      }">
-    </iframe>
-  </div>
-` : ''}
+    ${(globalLocations[trip.id] || userLocations[trip.id]) ? (() => {
+  const loc = globalLocations[trip.id] || userLocations[trip.id];
+  return `
+<div style="margin-top:10px;">
+  <iframe
+    width="100%"
+    height="180"
+    style="border-radius:10px;border:0;"
+    loading="lazy"
+    src="https://www.openstreetmap.org/export/embed.html?bbox=${
+      loc.lng - 0.01
+    }%2C${
+      loc.lat - 0.01
+    }%2C${
+      loc.lng + 0.01
+    }%2C${
+      loc.lat + 0.01
+    }&marker=${
+      loc.lat
+    }%2C${
+      loc.lng
+    }">
+  </iframe>
+</div>
+`;
+})() : ''}
 
     ${shareConfirm}` : '';
 
@@ -928,6 +944,23 @@ function ts(id) {
     return;
   }
 
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    sharing[id] = true;
+
+    // 🔥 GUARDAR EN FIREBASE
+    db.collection("locations").doc(id).set({
+      lat,
+      lng,
+      updated: Date.now()
+    });
+
+    doSearch();
+  });
+}
+
   navigator.geolocation.getCurrentPosition(
     pos => {
       const lat = pos.coords.latitude;
@@ -945,6 +978,7 @@ function ts(id) {
   );
 }
 
+loadLocations();
 loadVotes();
 setDay(currentDay);
 </script>
