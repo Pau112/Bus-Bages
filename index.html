@@ -1218,11 +1218,13 @@ function loadVotes() {
       const v = change.doc.data();
       const key = v.tripId + '_' + v.type;
       if (v.date !== TODAY) return;
+      // Ignorar confirmacions dels nostres propis vots (ja actualitzats localment a cv())
+      if (myVoteDocIds.has(change.doc.id)) return;
       if (change.type === 'removed') {
         delete globalVotes[key];
         affectedTrips.add(v.tripId);
       } else {
-        // Sempre actualitzem — pot ser canvi propi confirmat o d'altre usuari
+        // Canvi d'un altre usuari
         globalVotes[key] = v.value;
         affectedTrips.add(v.tripId);
       }
@@ -1767,13 +1769,18 @@ function togglePassed(id) {
   if (chev) chev.classList.toggle('open', !isOpen);
 }
 
+// Set de docIds propis per ignorar-los al snapshot i evitar parpadeo
+const myVoteDocIds = new Set();
+
 function cv(id, type, val) {
   const docId = id + '_' + type;
+  // Marcar com a propi ABANS d'enviar a Firebase, perquè el snapshot no el re-processi
+  myVoteDocIds.add(docId);
   globalVotes[docId] = val;
   movePill(id, type, val);
   updateBadges(id);
   db.collection("votes").doc(docId).set({ tripId: id, type: type, value: val, date: TODAY, time: Date.now() })
-    .catch(() => { delete globalVotes[docId]; });
+    .catch(() => { delete globalVotes[docId]; myVoteDocIds.delete(docId); });
 }
 
 function updateBadges(tripId) {
