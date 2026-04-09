@@ -1461,8 +1461,13 @@ function doSearch() {
   const demaList = nextList.filter(t => t._dema);
 
   if (avuiList.length > 0) {
+    // El proper bus només és interactiu si falta menys de 30 minuts per sortir
+    const nextDepMins = toMins(avuiList[0].times[orig]);
+    const minsLeft = nextDepMins - now;
+    const nextIsInteractive = minsLeft <= 30;
+
     html += '<p class="section-label">Proper bus</p>';
-    html += renderCard(avuiList[0], orig, dest, 'next');
+    html += renderCard(avuiList[0], orig, dest, nextIsInteractive ? 'next' : '');
     if (avuiList.length > 1) {
       html += '<p class="section-label">Següents busos</p>';
       for (let i = 1; i < avuiList.length; i++)

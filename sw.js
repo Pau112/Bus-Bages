@@ -1,4 +1,4 @@
-const CACHE = 'busbages-v5';
+const CACHE = 'busbages-v6';
 const ASSETS = [
   './',
   './index.html',
