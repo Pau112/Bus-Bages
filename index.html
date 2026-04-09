@@ -1204,6 +1204,7 @@ function isFromOtherUser(snapshot) {
 
 function loadVotes() {
   // Vots: { includeMetadataChanges: true } per detectar si és local o extern
+  let votesInitDone = false;
   db.collection("votes").onSnapshot({ includeMetadataChanges: false }, snapshot => {
     // includeMetadataChanges: false → només rebem canvis CONFIRMATS del servidor
     // Això elimina els snapshots locals i evita el parpadell
@@ -1227,10 +1228,13 @@ function loadVotes() {
       const myT = globalVotes[tripId + '_time'];
       if (myO) movePill(tripId, 'occ', myO);
       if (myT) movePill(tripId, 'time', myT);
-      // Notificació si el bus va tard o ple
-      if (myT === 'tard') sendNotif('🚌 Bus amb retard', 'El bus de les ' + tripId + ' va amb retard', tripId);
-      if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + tripId + ' va ple', tripId);
+      // Notificació si el bus va tard o ple (només canvis nous, no l'estat inicial)
+      if (votesInitDone) {
+        if (myT === 'tard') sendNotif('🚌 Bus amb retard', 'El bus de les ' + tripId + ' va amb retard', tripId);
+        if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + tripId + ' va ple', tripId);
+      }
     });
+    votesInitDone = true;
   });
 
   // Ratings: només re-renderitzar per canvis externs
@@ -1250,6 +1254,7 @@ function loadVotes() {
   });
 
   // Ubicacions: sempre externes (la nostra ja l'actualitzem localment)
+  let locInitDone = false;
   db.collection("locations").onSnapshot(snapshot => {
     let changed = false;
     snapshot.docChanges().forEach(change => {
@@ -1260,29 +1265,19 @@ function loadVotes() {
         const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
-        if (isNew) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
+        if (isNew && locInitDone) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
+    locInitDone = true;
   });
 
   // Confirmacions: actualitzar comptador + notificació una sola vegada per trip
-  const notifiedPassed = new Set(); // trips dels quals ja hem notificat que han passat
+  const notifiedPassed = new Set();
+  let confirmedInitDone = false; // ignorem el primer snapshot (dades ja existents)
   db.collection("confirmed").onSnapshot({ includeMetadataChanges: true }, snapshot => {
     if (snapshot.metadata.hasPendingWrites) return;
     const raw = {};
-    snapshot.docChanges().forEach(change => {
-      if (change.type !== 'added') return;
-      const d = change.doc.data();
-      if (d.date !== TODAY) return;
-      // Notificar UNA SOLA VEGADA per trip
-      if (!notifiedPassed.has(d.tripId)) {
-        notifiedPassed.add(d.tripId);
-        const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
-        const dep = btn ? btn.dataset.dep : '';
-        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId);
-      }
-    });
     snapshot.forEach(doc => {
       const d = doc.data();
       if (d.date !== TODAY) return;
@@ -1291,6 +1286,20 @@ function loadVotes() {
     });
     globalConfirmed = raw;
     updateAllConfirmed();
+    // Primer snapshot = estat inicial, no notifiquem
+    if (!confirmedInitDone) { confirmedInitDone = true; return; }
+    // A partir del segon snapshot, notifiquem només els nous
+    snapshot.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const d = change.doc.data();
+      if (d.date !== TODAY) return;
+      if (!notifiedPassed.has(d.tripId)) {
+        notifiedPassed.add(d.tripId);
+        const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
+        const dep = btn ? btn.dataset.dep : '';
+        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId);
+      }
+    });
   });
 
   // Historial per prediccions: només en càrrega inicial
