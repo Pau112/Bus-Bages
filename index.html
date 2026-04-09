@@ -1668,12 +1668,12 @@ function renderCard(trip, orig, dest, type) {
   }
 
   const isSubscribed = localStorage.getItem('bell_' + trip.id) === '1';
-  const bellBtn = (isNext || isPassed)
-    ? '<button class="bell-btn ' + (isSubscribed?'subscribed':'') + '" onclick="toggleBell(\'' + trip.id + '\',\'' + dep + '\')" title="Activar notificacions">🔔<span class="bell-dot"></span></button>'
-    : '';
+  const bellBtn = '<button class="bell-btn ' + (isSubscribed?'subscribed':'') + '" onclick="toggleBell(\'' + trip.id + '\',\'' + dep + '\')" title="Activar notificacions">🔔<span class="bell-dot"></span></button>';
+
+
   const tagHtml = isNext ? '<div class="tag-next">Proper bus</div>' : isPassed ? '<div class="tag-passed">Bus anterior</div>' : '<div></div>';
   return `<div class="${cardClass}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${isNext||isPassed?'4px':'0'};">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       ${tagHtml}
       ${bellBtn}
     </div>
