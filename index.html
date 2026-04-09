@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Bages</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0d0d0d; display: flex; justify-content: center; padding: 20px 0; min-height: 100vh; }
+    .app { width: 100%; max-width: 390px; background: #0d0d0d; min-height: 100vh; }
+
+    .header { background: #1a1a1a; padding: 14px 16px 10px; border: 0.5px solid #2a2a2a; border-radius: 14px; margin: 10px 12px 0; }
+    .header h1 { font-size: 26px; font-weight: 700; color: #f0f0f0; }
+    .header-sub { font-size: 15px; color: #888; margin-top: 4px; }
+
+    .day-banner { margin: 10px 12px 0; border-radius: 10px; padding: 7px 10px; display: flex; align-items: center; gap: 8px; }
+    .day-banner.feiner { background: #1a2e1a; border: 0.5px solid #3B6D11; }
+    .day-banner.festiu { background: #1a2233; border: 0.5px solid #185FA5; }
+    .day-banner.dissabte { background: #2a2010; border: 0.5px solid #854F0B; }
+    .day-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+    .feiner .day-icon { background: #2d5a1b; }
+    .festiu .day-icon { background: #1a3a5c; }
+    .dissabte .day-icon { background: #5c3a0a; }
+    .day-info { flex: 1; }
+    .day-type { font-size: 12px; font-weight: 600; }
+    .feiner .day-type { color: #7bc857; }
+    .festiu .day-type { color: #5fa8e8; }
+    .dissabte .day-type { color: #e8a84f; }
+    .day-desc { font-size: 11px; margin-top: 1px; }
+    .feiner .day-desc { color: #5a8c2a; }
+    .festiu .day-desc { color: #4a7abf; }
+    .dissabte .day-desc { color: #9a6515; }
+
+    .day-switch { display: flex; gap: 4px; margin: 8px 12px 0; }
+    .ds-btn { flex: 1; padding: 5px 4px; border: 0.5px solid #2a2a2a; border-radius: 20px; font-size: 11px; text-align: center; cursor: pointer; background: #1a1a1a; color: #666; }
+    .ds-btn.active-f { background: #1a2e1a; color: #7bc857; border-color: #3B6D11; font-weight: 600; border-radius: 20px; }
+    .ds-btn.active-s { background: #2a2010; color: #e8a84f; border-color: #854F0B; font-weight: 600; }
+    .ds-btn.active-d { background: #1a2233; color: #5fa8e8; border-color: #185FA5; font-weight: 600; }
+
+    .search-box { background: #1a1a1a; margin: 10px 12px 0; border-radius: 12px; border: 0.5px solid #2a2a2a; padding: 10px 12px; }
+    .search-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+    .search-row:first-child { border-bottom: 0.5px solid #2a2a2a; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-o { background: #378ADD; }
+    .dot-d { background: #D4537E; }
+    .search-row select { border: none; background: transparent; font-size: 15px; color: #e0e0e0; flex: 1; outline: none; cursor: pointer; }
+    .search-row select.placeholder { color: #444; }
+
+    .btn-search { width: calc(100% - 24px); margin: 8px 12px 0; background: #378ADD; color: #fff; border: none; border-radius: 8px; padding: 14px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .btn-search:active { opacity: 0.85; }
+
+    .section-label { font-size: 10px; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.06em; padding: 12px 12px 4px; }
+    .bus-card { background: #1a1a1a; margin: 0 12px 7px; border-radius: 12px; border: 0.5px solid #2a2a2a; padding: 11px 12px; }
+    .bus-card.passed { opacity: 0.4; }
+    .bus-card.passed.confirmed { opacity: 1; border: 1.5px solid #3B6D11; box-shadow: 0 0 0 4px #1a2e1a; }
+    .bus-card.isnext { border: 1.5px solid #2a5f9e; }
+    .btn-passed { width: 100%; margin-top: 9px; padding: 9px; border: 0.5px solid #97C459; border-radius: 8px; font-size: 12px; font-weight: 600; background: #EAF3DE; color: #3B6D11; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .btn-passed.done { background: #3B6D11; color: #fff; border-color: #3B6D11; cursor: default; }
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 24px; }
+    .confirm-box { background: #1a1a1a; border-radius: 16px; padding: 20px; width: 100%; max-width: 320px; text-align: center; border: 0.5px solid #2a2a2a; }
+    .confirm-box h3 { font-size: 16px; font-weight: 600; color: #f0f0f0; margin-bottom: 8px; }
+    .confirm-box p { font-size: 13px; color: #888; margin-bottom: 18px; line-height: 1.5; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-btns button { flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: 0.5px solid #2a2a2a; }
+    .confirm-yes { background: #EAF3DE; color: #3B6D11; border-color: #97C459 !important; }
+    .confirm-no { background: #252525; color: #888; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-time { font-size: 22px; font-weight: 600; color: #f0f0f0; }
+    .card-sub { font-size: 12px; color: #555; margin-top: 2px; }
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+    .bg { background: #EAF3DE; color: #3B6D11; }
+    .ba { background: #FAEEDA; color: #854F0B; }
+    .br { background: #FCEBEB; color: #A32D2D; }
+    .bx { background: #252525; color: #666; }
+
+    .vote-section { display: flex; flex-direction: column; gap: 8px; margin-top: 9px; padding-top: 9px; border-top: 0.5px solid #2a2a2a; }
+    .vote-label { font-size: 10px; color: #555; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+    /* Selector amb pill lliscant */
+    .pill-wrap { position: relative; display: flex; border-radius: 10px; background: #252525; border: 0.5px solid #2a2a2a; padding: 3px; gap: 0; overflow: hidden; }
+    .pill-track { position: absolute; top: 3px; bottom: 3px; border-radius: 7px; transition: left 0.22s cubic-bezier(.4,0,.2,1), width 0.22s cubic-bezier(.4,0,.2,1), background 0.22s; z-index: 0; pointer-events: none; }
+    .pill-opt { flex: 1; position: relative; z-index: 1; padding: 6px 4px; font-size: 11px; font-weight: 500; text-align: center; cursor: pointer; border-radius: 7px; color: #666; transition: color 0.2s; user-select: none; }
+    .pill-opt.active { color: #fff; font-weight: 700; }
+    /* Colors pill per ocupació */
+    .pill-wrap.occ .pill-opt.active-buit { color: #3B6D11; }
+    .pill-wrap.occ .pill-opt.active-mig  { color: #854F0B; }
+    .pill-wrap.occ .pill-opt.active-ple  { color: #A32D2D; }
+    /* Colors pill per puntualitat */
+    .pill-wrap.time .pill-opt.active-punt { color: #3B6D11; }
+    .pill-wrap.time .pill-opt.active-tard { color: #854F0B; }
+    /* Colors del track */
+    .pill-track.c-buit { background: #1a2e1a; border: 0.5px solid #3B6D11; }
+    .pill-track.c-mig  { background: #2e2010; border: 0.5px solid #854F0B; }
+    .pill-track.c-ple  { background: #2e1010; border: 0.5px solid #A32D2D; }
+    .pill-track.c-punt { background: #1a2e1a; border: 0.5px solid #3B6D11; }
+    .pill-track.c-tard { background: #2e2010; border: 0.5px solid #854F0B; }
+    /* Mode clar */
+    body.light .pill-wrap { background: #f0f0f0; border-color: #ddd; }
+    body.light .pill-opt { color: #aaa; }
+    body.light .pill-track.c-buit { background: #EAF3DE; border-color: #97C459; }
+    body.light .pill-track.c-mig  { background: #FAEEDA; border-color: #EF9F27; }
+    body.light .pill-track.c-ple  { background: #FCEBEB; border-color: #F09595; }
+    body.light .pill-track.c-punt { background: #EAF3DE; border-color: #97C459; }
+    body.light .pill-track.c-tard { background: #FAEEDA; border-color: #EF9F27; }
+    body.light .pill-wrap.occ .pill-opt.active-buit { color: #3B6D11; }
+    body.light .pill-wrap.occ .pill-opt.active-mig  { color: #854F0B; }
+    body.light .pill-wrap.occ .pill-opt.active-ple  { color: #A32D2D; }
+    body.light .pill-wrap.time .pill-opt.active-punt { color: #3B6D11; }
+    body.light .pill-wrap.time .pill-opt.active-tard { color: #854F0B; }
+    .vote-row { display: flex; gap: 3px; }
+    .vm { flex: 1; padding: 5px 2px; border: 0.5px solid #2a2a2a; border-radius: 6px; font-size: 10px; text-align: center; cursor: pointer; background: #252525; color: #888; }
+    .vm.ag { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .vm.aa { background: #FAEEDA; color: #854F0B; border-color: #EF9F27; }
+    .vm.ar { background: #FCEBEB; color: #A32D2D; border-color: #F09595; }
+
+    .share-btn { width: 100%; margin-top: 7px; padding: 8px; border: 0.5px solid #2a2a2a; border-radius: 8px; font-size: 11px; background: #252525; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .share-btn.on { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .share-confirm { font-size: 11px; color: #7bc857; margin-top: 5px; text-align: center; padding: 4px; background: #1a2e1a; border-radius: 6px; }
+
+    .dot-pulse { width: 7px; height: 7px; border-radius: 50%; background: #639922; }
+    .tag-next { display: inline-block; background: #E6F1FB; color: #185FA5; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-bottom: 5px; }
+    .no-results { text-align: center; padding: 28px 16px; color: #555; font-size: 13px; }
+    .votes-count { font-size: 11px; color: #999; margin-top: 4px; }
+    .results-wrap { padding-bottom: 24px; margin-top: 10px; }
+
+    .rating-wrap { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 9px; padding-top: 9px; border-top: 0.5px solid #2a2a2a; }
+    .stars { display: flex; gap: 3px; }
+    .star { width: 30px; height: 30px; border-radius: 50%; border: 0.5px solid #2a2a2a; background: #252525; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.12s; color: #555; }
+    .star.active { background: #FAEEDA; border-color: #EF9F27; color: #854F0B; }
+    .star:hover { background: #fff3e0; border-color: #EF9F27; color: #854F0B; }
+    .rating-avg { font-size: 11px; color: #555; margin-left: 4px; }
+    .rating-avg span { font-weight: 600; color: #e8a84f; }
+    .ruta-error { background: #FCEBEB; border: 0.5px solid #F09595; border-radius: 10px; margin: 12px; padding: 12px 14px; font-size: 13px; color: #A32D2D; text-align: center; }
+    .predict-wrap { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #2a2a2a; }
+    .predict-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; display: flex; align-items: center; gap: 4px; }
+    .predict-badge.pb-tard { background: #FFF8E6; color: #854F0B; border: 0.5px solid #EF9F27; }
+    .predict-badge.pb-ple  { background: #FCEBEB; color: #A32D2D; border: 0.5px solid #F09595; }
+    .predict-badge.pb-mig  { background: #FAEEDA; color: #854F0B; border: 0.5px solid #EF9F27; }
+    .predict-badge.pb-buit { background: #EAF3DE; color: #3B6D11; border: 0.5px solid #97C459; }
+    .predict-label { font-size: 10px; color: #555; margin-top: 6px; width: 100%; }
+    /* ── Pantalla d'inici ── */
+    .welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px 24px; gap: 16px; position: relative; }
+    .welcome-logo { font-size: 56px; margin-bottom: 4px; }
+    .welcome-title { font-size: 36px; font-weight: 800; color: #f0f0f0; text-align: center; line-height: 1.2; letter-spacing: -0.5px; }
+    .welcome-sub { font-size: 14px; color: #555; text-align: center; margin-bottom: 16px; }
+    .welcome-btn { width: 100%; padding: 18px 20px; border-radius: 16px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; transition: transform 0.1s; }
+    .welcome-btn:active { transform: scale(0.98); }
+    .welcome-btn-mb { background: #378ADD; }
+    .welcome-btn-bm { background: #1a1a1a; border: 1.5px solid #2a2a2a; }
+    .welcome-btn-icon { font-size: 28px; }
+    .welcome-btn-text { flex: 1; }
+    .welcome-btn-title { font-size: 16px; font-weight: 700; }
+    .welcome-btn-mb .welcome-btn-title { color: #fff; }
+    .welcome-btn-bm .welcome-btn-title { color: #f0f0f0; }
+    .welcome-btn-desc { font-size: 12px; margin-top: 2px; }
+    .welcome-btn-mb .welcome-btn-desc { color: #B5D4F4; }
+    .welcome-btn-bm .welcome-btn-desc { color: #999; }
+    .welcome-btn-arrow { font-size: 22px; }
+    .welcome-btn-mb .welcome-btn-arrow { color: #B5D4F4; }
+    .welcome-btn-bm .welcome-btn-arrow { color: #ccc; }
+    .welcome-line { width: 100%; height: 1px; background: #2a2a2a; }
+    /* Amagar l'app fins que s'esculli direcció */
+    .app-content { display: none; }
+
+    /* ── Animacions globals ── */
+    * { transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease, opacity 0.2s ease; }
+    .bus-card { transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, background-color 0.2s ease !important; }
+    .bus-card:active { transform: scale(0.985); }
+    .welcome-btn { transition: transform 0.15s ease, background 0.2s ease !important; }
+    .welcome-btn:active { transform: scale(0.97) !important; }
+    .btn-search { transition: transform 0.1s ease, opacity 0.15s ease !important; }
+    .btn-search:active { transform: scale(0.97); opacity: 0.9; }
+    .vm { transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important; }
+    .vm:active { transform: scale(0.93); }
+    .ds-btn { transition: background 0.2s ease, color 0.2s ease !important; }
+
+    /* Pantalla inici - entrada suau */
+    .welcome-screen { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* App content - entrada suau */
+    .app-content.visible { animation: slideIn 0.25s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* ── Bus anterior col·lapsable ── */
+    .passed-header { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 2px 0; user-select: none; }
+    .passed-header:active { opacity: 0.7; }
+    .passed-chevron { font-size: 13px; color: #555; transition: transform 0.25s ease !important; }
+    .passed-chevron.open { transform: rotate(180deg); }
+    .passed-body { overflow: hidden; max-height: 0; transition: max-height 0.35s ease, opacity 0.3s ease !important; opacity: 0; }
+    .passed-body.open { max-height: 600px; opacity: 1; }
+
+    /* Results - cards entren suau */
+    .results-wrap .bus-card { animation: cardIn 0.2s ease both; }
+    @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Toggle mode clar/fosc */
+    .theme-toggle { background: none; border: 0.5px solid #2a2a2a; border-radius: 20px; padding: 5px 10px; cursor: pointer; font-size: 11px; color: #666; display: flex; align-items: center; gap: 5px; transition: all 0.2s; }
+    .theme-toggle:hover { border-color: #444; color: #aaa; }
+
+    /* Mode clar */
+    body.light { background: #f5f5f5; }
+    body.light .app { background: #f5f5f5; }
+    body.light .header { background: #fff; border-color: #e0e0e0; }
+    body.light .header h1 { color: #111; }
+    body.light .header-sub { color: #888; }
+    body.light .theme-toggle { border-color: #ddd; color: #666; }
+    body.light .theme-toggle:hover { border-color: #aaa; color: #333; }
+    body.light #day-banner { }
+    body.light .day-banner.feiner { background: #EAF3DE; border-color: #97C459; }
+    body.light .feiner .day-type { color: #3B6D11; }
+    body.light .feiner .day-desc { color: #639922; }
+    body.light .feiner .day-icon { background: #C0DD97; }
+    body.light .ds-btn { background: #f0f0f0; border-color: #ddd; color: #888; }
+    body.light .ds-btn.active-f { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    body.light .search-box { background: #fff; border-color: #e0e0e0; }
+    body.light .search-row:first-child { border-bottom-color: #eee; }
+    body.light .search-row select { color: #111; }
+    body.light .bus-card { background: #fff; border-color: #e0e0e0; }
+    body.light .bus-card.isnext { border-color: #378ADD; }
+    body.light .bus-card.passed.confirmed { border-color: #639922; box-shadow: 0 0 0 4px #EAF3DE; }
+    body.light .card-time { color: #111; }
+    body.light .card-sub { color: #888; }
+    body.light .vote-section { border-top-color: #eee; }
+    body.light .vote-label { color: #999; }
+    body.light .vm { background: #f5f5f5; border-color: #ddd; color: #666; }
+    body.light .share-btn { background: #f5f5f5; border-color: #ddd; color: #666; }
+    body.light .share-confirm { background: #EAF3DE; color: #3B6D11; }
+    body.light .section-label { color: #999; }
+    body.light .no-results { color: #999; }
+    body.light .star { background: #f5f5f5; border-color: #ddd; color: #aaa; }
+    body.light .rating-wrap { border-top-color: #eee; }
+    body.light .rating-avg { color: #999; }
+    body.light .predict-wrap { border-top-color: #eee; }
+    body.light .predict-label { color: #999; }
+    body.light .bx { background: #f0f0f0; color: #888; }
+    body.light .confirm-box { background: #fff; border-color: #e0e0e0; }
+    body.light .confirm-box h3 { color: #111; }
+    body.light .confirm-box p { color: #666; }
+    body.light .confirm-btns button { border-color: #ddd; }
+    body.light .confirm-no { background: #f5f5f5; color: #666; }
+    body.light .welcome-title { color: #111; }
+    body.light .welcome-sub { color: #999; }
+    body.light .welcome-btn-bm { background: #fff; border-color: #e0e0e0; }
+    body.light .welcome-btn-bm .welcome-btn-title { color: #111; }
+    body.light .welcome-line { background: #e0e0e0; }
+    body.light .welcome-screen { background: #f5f5f5; }
+    body.light .app-footer { border-top-color: #e0e0e0; }
+    body.light .app-footer p { color: #aaa; }
+    body.light .app-footer a { color: #bbb; }
+    body.light [style*="background:#1a1a1a;border:0.5px solid #2a2a2a"] { background: #fff !important; border-color: #e0e0e0 !important; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ PANTALLA D'INICI ═══ -->
+  <div class="welcome-screen" id="welcome-screen">
+    <!-- Botó tema a dalt a la dreta -->
+    <div style="position:absolute;top:20px;right:20px;">
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn-welcome">☀️ Clar</button>
+    </div>
+
+    <div class="welcome-logo">🚌</div>
+    <div class="welcome-title">Bus Bages</div>
+    <div class="welcome-sub">Monbus E22 · E23 · Temps real</div>
+
+    <div class="welcome-line"></div>
+
+    <button class="welcome-btn welcome-btn-mb" onclick="enterApp('mb')">
+      <div class="welcome-btn-icon">🏙️</div>
+      <div class="welcome-btn-text">
+        <div class="welcome-btn-title">Manresa → Barcelona</div>
+        <div class="welcome-btn-desc">Horaris d'anada</div>
+      </div>
+      <div class="welcome-btn-arrow">›</div>
+    </button>
+
+    <button class="welcome-btn welcome-btn-bm" onclick="enterApp('bm')">
+      <div class="welcome-btn-icon">🏡</div>
+      <div class="welcome-btn-text">
+        <div class="welcome-btn-title">Barcelona → Manresa</div>
+        <div class="welcome-btn-desc">Horaris de tornada</div>
+      </div>
+      <div class="welcome-btn-arrow" style="color:#ccc;">›</div>
+    </button>
+  </div>
+
+  <!-- ═══ APP PRINCIPAL (amagada fins que s'esculli) ═══ -->
+  <div class="app-content" id="app-content">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="backToWelcome()" style="background:none;border:none;cursor:pointer;font-size:24px;color:#888;padding:0;line-height:1;">‹</button>
+        <div style="flex:1;">
+          <h1 id="header-title">Bus Bages</h1>
+          <div class="header-sub" id="header-sub">Monbus E22 · E23</div>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀️ Clar</button>
+      </div>
+    </div>
+
+    <!-- Banner dia + selector integrats -->
+    <div style="background:#1a1a1a;border:0.5px solid #2a2a2a;padding:7px 10px;border-radius:12px;margin:10px 12px 0;">
+      <div id="day-banner" class="day-banner feiner" style="margin:0 0 8px 0;">
+        <div class="day-icon">📅</div>
+        <div class="day-info">
+          <div class="day-type" id="day-type-text">Dia feiner</div>
+          <div class="day-desc" id="day-desc-text">Servei complet · dilluns a divendres</div>
+        </div>
+      </div>
+      <!-- Només feiners per ara -->
+      <div style="display:flex;justify-content:center;">
+        <div class="ds-btn active-f" id="btn-f" style="max-width:140px;text-align:center;">Dilluns — Divendres</div>
+      </div>
+    </div>
+
+  <!-- Selectors - les opcions es carreguen per JS segons la direcció -->
+  <div class="search-box">
+    <div class="search-row">
+      <div class="dot dot-o"></div>
+      <select id="sel-orig">
+        <option value="" disabled selected style="color:#bbb;">Selecciona parada d'origen</option>
+        <option value="manresa_est">Manresa — Estació d'autobusos</option>
+        <option value="manresa_val">Manresa — Plaça Valldaura</option>
+        <option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+        <option value="castellgali">Castellgalí — La Fàbrica</option>
+        <option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+        <option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+        <option value="monistrol_gom">Monistrol — Can Gomis</option>
+        <option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+        <option value="olesa_cat">Olesa de Montserrat — Pl. Catalunya</option>
+        <option value="bcn_uni">Barcelona — Zona Universitària</option>
+        <option value="bcn_palau">Barcelona — Palau Reial</option>
+        <option value="bcn_mc">Barcelona — Maria Cristina</option>
+        <option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+        <option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+        <option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>
+      </select>
+    </div>
+    <div class="search-row">
+      <div class="dot dot-d"></div>
+      <select id="sel-dest">
+        <option value="" disabled selected style="color:#bbb;">Selecciona destinació</option>
+        <option value="manresa_est">Manresa — Estació d'autobusos</option>
+        <option value="manresa_val">Manresa — Plaça Valldaura</option>
+        <option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+        <option value="castellgali">Castellgalí — La Fàbrica</option>
+        <option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+        <option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+        <option value="monistrol_gom">Monistrol — Can Gomis</option>
+        <option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+        <option value="olesa_cat">Olesa de Montserrat — Pl. Catalunya</option>
+        <option value="bcn_uni">Barcelona — Zona Universitària</option>
+        <option value="bcn_palau">Barcelona — Palau Reial</option>
+        <option value="bcn_mc">Barcelona — Maria Cristina</option>
+        <option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+        <option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+        <option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn-search" onclick="doSearch()">Buscar horaris</button>
+
+  <div id="results" class="results-wrap"></div>
+  <!-- Footer -->
+  <div style="padding: 24px 16px 32px; text-align: center; border-top: 0.5px solid #2a2a2a; margin-top: 8px;">
+    <p style="font-size: 11px; color: #444; line-height: 1.6;">
+      Informar d'Errors<br>
+      <span id="contact-email" style="color: #555;"></span>
+    </p>
+  </div>
+  <script>document.getElementById('contact-email').textContent = 'lintepux' + '@' + 'gmail.com';</script>
+  </div><!-- fi app-content -->
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyD0G3NS5Hofp9DnZRJKgVJ-Oriog47P0c4",
+  authDomain: "bus-bages-481b5.firebaseapp.com",
+  projectId: "bus-bages-481b5",
+  storageBucket: "bus-bages-481b5.appspot.com",
+  messagingSenderId: "1043250771775",
+  appId: "1:1043250771775:web:42990cc3c56bb55b8b058a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
+    const userLocations = {};
+    let globalVotes = {};
+    let globalRatings = {};
+    let globalHistory = {}; // { tripId: { occ: {ple:N, mig:N, buit:N}, time: {tard:N, punt:N}, days:N } }
+    let myRatings = {};
+    let globalConfirmed = {};
+    const sessionId = Math.random().toString(36).slice(2);
+const T = {
+  feiner: [
+    {id:'f1',line:'E22',times:{
+  manresa_est:'5:30',manresa_val:'5:37',
+  bcn_uni:'6:35',bcn_palau:'6:37',bcn_mc:'6:39',
+  bcn_macia:'6:42',bcn_munt:'6:45',bcn_gran:'6:50'
+}},
+
+{id:'f2',line:'E23',times:{
+  olesa_clos:'6:00',olesa_cat:'6:02',
+  bcn_uni:'6:36',bcn_palau:'6:38',bcn_mc:'6:40'
+}},
+
+{id:'f3',line:'E22',times:{
+  manresa_est:'5:40',manresa_val:'5:47',
+  castellgali:'5:58',st_vicenc_pi:'6:02',
+  monistrol_alv:'6:13',monistrol_gom:'6:15',
+  olesa_clos:'6:25',olesa_cat:'6:27',
+  bcn_uni:'6:55',bcn_palau:'6:57',bcn_mc:'6:59',
+  bcn_macia:'7:02',bcn_munt:'7:05',bcn_gran:'7:10'
+}},
+
+{id:'f4',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  bcn_uni:'7:06',bcn_palau:'7:08',bcn_mc:'7:10'
+}},
+
+{id:'f5',line:'E23',times:{
+  monistrol_alv:'6:00',monistrol_gom:'6:02',
+  olesa_clos:'6:12',olesa_cat:'6:14',
+  bcn_uni:'6:51',bcn_palau:'6:53',bcn_mc:'6:55'
+}},
+
+{id:'f6',line:'E23',times:{
+  olesa_clos:'6:30',olesa_cat:'6:32',
+  bcn_uni:'7:21',bcn_palau:'7:23',bcn_mc:'7:25'
+}},
+
+{id:'f7',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  castellgali:'6:18',st_vicenc_pi:'6:22',
+  monistrol_alv:'6:33',monistrol_gom:'6:35',
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:15',bcn_palau:'7:17',bcn_mc:'7:19',
+  bcn_macia:'7:22',bcn_munt:'7:25',bcn_gran:'7:30'
+}},
+
+{id:'f8',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29',
+  bcn_macia:'7:32',bcn_munt:'7:35',bcn_gran:'7:40'
+}},
+
+{id:'f9',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29'
+}},
+
+{id:'f10',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:45',bcn_palau:'7:47',bcn_mc:'7:49',
+  bcn_macia:'7:52',bcn_munt:'7:55',bcn_gran:'8:00'
+}},
+
+{id:'f11',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:51',bcn_palau:'7:53',bcn_mc:'7:55'
+}},
+
+{id:'f12',line:'E22',times:{
+  manresa_est:'6:40',manresa_val:'6:47',
+  bcn_uni:'7:41',bcn_palau:'7:43',bcn_mc:'7:45'
+}},
+
+{id:'f13',line:'E23',times:{
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:36',bcn_palau:'7:38',bcn_mc:'7:40'
+}},
+
+{id:'f14',line:'E23',times:{
+  monistrol_alv:'6:50',monistrol_gom:'6:52',
+  olesa_clos:'7:02',olesa_cat:'7:04',
+  bcn_uni:'7:56',bcn_palau:'7:58',bcn_mc:'8:00'
+}},
+
+{id:'f15',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:05',bcn_palau:'8:07',bcn_mc:'8:09',
+  bcn_macia:'8:12',bcn_munt:'8:15',bcn_gran:'8:20'
+}},
+
+{id:'f16',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:01',bcn_palau:'8:03',bcn_mc:'8:05'
+}},
+
+{id:'f17',line:'E22',times:{
+  manresa_est:'7:00',manresa_val:'7:07',
+  bcn_uni:'8:35',bcn_palau:'8:37',bcn_mc:'8:39',
+  bcn_macia:'8:42',bcn_munt:'8:45',bcn_gran:'8:50'
+}},
+
+{id:'f18',line:'E22',times:{
+  manresa_est:'7:15',manresa_val:'7:22',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f19',line:'E23',times:{
+  monistrol_alv:'7:15',monistrol_gom:'7:17',
+  olesa_clos:'7:27',olesa_cat:'7:29',
+  bcn_uni:'8:21',bcn_palau:'8:23',bcn_mc:'8:25'
+}},
+
+{id:'f20',line:'E23',times:{
+  monistrol_alv:'7:20',monistrol_gom:'7:22',
+  olesa_clos:'7:32',olesa_cat:'7:34',
+  bcn_uni:'8:30',bcn_palau:'8:32',bcn_mc:'8:34',
+  bcn_macia:'8:37',bcn_munt:'8:40',bcn_gran:'8:45'
+}},
+
+{id:'f21',line:'E23',times:{
+  olesa_clos:'7:45',olesa_cat:'7:47',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f22',line:'E22',times:{
+  manresa_est:'7:20',manresa_val:'7:27',
+  castellgali:'7:38',st_vicenc_pi:'7:42',
+  monistrol_alv:'7:53',monistrol_gom:'7:55',
+  olesa_clos:'8:05',olesa_cat:'8:07',
+  bcn_uni:'9:15',bcn_palau:'9:17',bcn_mc:'9:19',
+  bcn_macia:'9:22',bcn_munt:'9:25',bcn_gran:'9:30'
+}},
+
+{id:'f23',line:'E22',times:{
+  manresa_est:'7:30',manresa_val:'7:37',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f24',line:'E22',times:{
+  manresa_est:'7:45',manresa_val:'7:52',
+  bcn_uni:'9:10',bcn_palau:'9:12',bcn_mc:'9:14',
+  bcn_macia:'9:17',bcn_munt:'9:20',bcn_gran:'9:25'
+}},
+
+{id:'f25',line:'E23',times:{
+  monistrol_alv:'7:50',monistrol_gom:'7:52',
+  olesa_clos:'8:02',olesa_cat:'8:04',
+  bcn_uni:'8:50',bcn_palau:'8:52',bcn_mc:'8:54',
+  bcn_macia:'8:57',bcn_munt:'9:00',bcn_gran:'9:05'
+}},
+
+{id:'f26',line:'E23',times:{
+  olesa_clos:'8:15',olesa_cat:'8:17',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f27',line:'E22',times:{
+  manresa_est:'8:00',manresa_val:'8:07',
+  manresa_hos:'8:15',
+  bcn_uni:'9:20',bcn_palau:'9:22',bcn_mc:'9:24',
+  bcn_macia:'9:27',bcn_munt:'9:30',bcn_gran:'9:35'
+}},
+
+{id:'f28',line:'E22',times:{
+  manresa_est:'8:15',manresa_val:'8:22',
+  bcn_uni:'9:25',bcn_palau:'9:27',bcn_mc:'9:29',
+  bcn_macia:'9:32',bcn_munt:'9:35',bcn_gran:'9:40'
+}},
+
+{id:'f29',line:'E22',times:{
+  manresa_est:'8:30',manresa_val:'8:37',
+  bcn_uni:'9:45',bcn_palau:'9:47',bcn_mc:'9:49',
+  bcn_macia:'9:52',bcn_munt:'9:55',bcn_gran:'10:00'
+}},
+
+{id:'f30',line:'E23',times:{
+  olesa_clos:'8:45',olesa_cat:'8:47',
+  bcn_uni:'9:36',bcn_palau:'9:38',bcn_mc:'9:40'
+}},
+
+{id:'f31',line:'E22',times:{
+  manresa_est:'8:45',manresa_val:'8:52',
+  bcn_uni:'10:00',bcn_palau:'10:02',bcn_mc:'10:04',
+  bcn_macia:'10:07',bcn_munt:'10:10',bcn_gran:'10:15'
+}},
+
+{id:'f32',line:'E23',times:{
+  monistrol_alv:'9:00',monistrol_gom:'9:02',
+  olesa_clos:'9:12',olesa_cat:'9:14',
+  bcn_uni:'9:51',bcn_palau:'9:53',bcn_mc:'9:55'
+}},
+
+{id:'f33',line:'E22',times:{
+  manresa_est:'9:00',manresa_val:'9:07',
+  bcn_uni:'10:06',bcn_palau:'10:08',bcn_mc:'10:10'
+}},
+
+{id:'f34',line:'E22',times:{
+  manresa_est:'9:15',manresa_val:'9:22',
+  castellgali:'9:33',st_vicenc_pi:'9:37',
+  monistrol_alv:'9:48',monistrol_gom:'9:50',
+  olesa_clos:'10:00',olesa_cat:'10:02',
+  bcn_uni:'10:30',bcn_palau:'10:32',bcn_mc:'10:34',
+  bcn_macia:'10:37',bcn_munt:'10:40',bcn_gran:'10:45'
+}},
+
+{id:'f35',line:'E22',times:{
+  manresa_est:'9:30',manresa_val:'9:37',
+  bcn_uni:'10:35',bcn_palau:'10:37',bcn_mc:'10:39',
+  bcn_macia:'10:42',bcn_munt:'10:45',bcn_gran:'10:50'
+}},
+
+{id:'f36',line:'E23',times:{
+  monistrol_alv:'9:45',monistrol_gom:'9:47',
+  olesa_clos:'9:57',olesa_cat:'9:59',
+  bcn_uni:'10:36',bcn_palau:'10:38',bcn_mc:'10:40'
+}},
+
+{id:'f37',line:'E22',times:{
+  manresa_est:'10:00',manresa_val:'10:07',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f38',line:'E23',times:{
+  olesa_clos:'10:25',olesa_cat:'10:27',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f39',line:'E22',times:{
+  manresa_est:'10:30',manresa_val:'10:37',
+  bcn_uni:'11:36',bcn_palau:'11:38',bcn_mc:'11:40'
+}},
+
+{id:'f40',line:'E23',times:{
+  monistrol_alv:'11:00',monistrol_gom:'11:02',
+  olesa_clos:'11:12',olesa_cat:'11:14',
+  bcn_uni:'11:55',bcn_palau:'11:57',bcn_mc:'11:59',
+  bcn_macia:'12:02',bcn_munt:'12:05',bcn_gran:'12:10'
+}},
+
+{id:'f41',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  bcn_uni:'12:05',bcn_palau:'12:07',bcn_mc:'12:09',
+  bcn_macia:'12:12',bcn_munt:'12:15',bcn_gran:'12:20'
+}},
+
+{id:'f42',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  castellgali:'11:18',st_vicenc_pi:'11:22',
+  monistrol_alv:'11:33',monistrol_gom:'11:35',
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:30',bcn_palau:'12:32',bcn_mc:'12:34',
+  bcn_macia:'12:37',bcn_munt:'12:40',bcn_gran:'12:45'
+}},
+
+{id:'f43',line:'E22',times:{
+  manresa_est:'11:30',manresa_val:'11:37',
+  bcn_uni:'12:35',bcn_palau:'12:37',bcn_mc:'12:39',
+  bcn_macia:'12:42',bcn_munt:'12:45',bcn_gran:'12:50'
+}},
+
+{id:'f44',line:'E23',times:{
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:26',bcn_palau:'12:28',bcn_mc:'12:30'
+}},
+
+{id:'f45',line:'E22',times:{
+  manresa_est:'12:00',manresa_val:'12:07',
+  bcn_uni:'13:06',bcn_palau:'13:08',bcn_mc:'13:10'
+}},
+
+{id:'f46',line:'E23',times:{
+  monistrol_alv:'12:25',monistrol_gom:'12:27',
+  olesa_clos:'12:37',olesa_cat:'12:39',
+  bcn_uni:'13:16',bcn_palau:'13:18',bcn_mc:'13:20'
+}},
+
+{id:'f47',line:'E22',times:{
+  manresa_est:'12:30',manresa_val:'12:37',
+  bcn_uni:'13:35',bcn_palau:'13:37',bcn_mc:'13:39',
+  bcn_macia:'13:42',bcn_munt:'13:45',bcn_gran:'13:50'
+}},
+
+{id:'f48',line:'E23',times:{
+  olesa_clos:'13:00',olesa_cat:'13:02',
+  bcn_uni:'13:41',bcn_palau:'13:43',bcn_mc:'13:45'
+}},
+
+{id:'f49',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f50',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  castellgali:'13:18',st_vicenc_pi:'13:22',
+  monistrol_alv:'13:33',monistrol_gom:'13:35',
+  olesa_clos:'13:45',olesa_cat:'13:47',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f51',line:'E22',times:{
+  manresa_est:'13:30',manresa_val:'13:37',
+  bcn_uni:'14:36',bcn_palau:'14:38',bcn_mc:'14:40'
+}},
+
+{id:'f52',line:'E22',times:{
+  manresa_est:'14:00',manresa_val:'14:07',
+  bcn_uni:'15:05',bcn_palau:'15:07',bcn_mc:'15:09',
+  bcn_macia:'15:12',bcn_munt:'15:15',bcn_gran:'15:20'
+}},
+
+{id:'f53',line:'E23',times:{
+  olesa_clos:'14:00',olesa_cat:'14:02',
+  bcn_uni:'14:40',bcn_palau:'14:42',bcn_mc:'14:44',
+  bcn_macia:'14:47',bcn_munt:'14:50',bcn_gran:'14:55'
+}},
+
+{id:'f54',line:'E22',times:{
+  manresa_est:'14:30',manresa_val:'14:37',
+  bcn_uni:'15:36',bcn_palau:'15:38',bcn_mc:'15:40'
+}},
+
+{id:'f55',line:'E23',times:{
+  monistrol_alv:'14:40',monistrol_gom:'14:42',
+  olesa_clos:'14:52',olesa_cat:'14:54',
+  bcn_uni:'15:31',bcn_palau:'15:33',bcn_mc:'15:35'
+}},
+
+{id:'f56',line:'E22',times:{
+  manresa_est:'14:50',manresa_val:'14:57',
+  castellgali:'15:08',st_vicenc_pi:'15:12',
+  monistrol_alv:'15:23',monistrol_gom:'15:25',
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:20',bcn_palau:'16:22',bcn_mc:'16:24',
+  bcn_macia:'16:27',bcn_munt:'16:30',bcn_gran:'16:35'
+}},
+
+{id:'f57',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f58',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  manresa_hos:'15:15',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f59',line:'E22',times:{
+  manresa_est:'15:30',manresa_val:'15:37',
+  bcn_uni:'16:35',bcn_palau:'16:37',bcn_mc:'16:39',
+  bcn_macia:'16:42',bcn_munt:'16:45',bcn_gran:'16:50'
+}},
+
+{id:'f60',line:'E23',times:{
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:16',bcn_palau:'16:18',bcn_mc:'16:20'
+}},
+
+{id:'f61',line:'E22',times:{
+  manresa_est:'16:00',manresa_val:'16:07',
+  bcn_uni:'17:06',bcn_palau:'17:08',bcn_mc:'17:10'
+}},
+
+{id:'f62',line:'E23',times:{
+  monistrol_alv:'16:00',monistrol_gom:'16:02',
+  olesa_clos:'16:12',olesa_cat:'16:14',
+  bcn_uni:'16:51',bcn_palau:'16:53',bcn_mc:'16:55'
+}},
+
+{id:'f63',line:'E23',times:{
+  olesa_clos:'16:30',olesa_cat:'16:32',
+  bcn_uni:'17:10',bcn_palau:'17:12',bcn_mc:'17:14',
+  bcn_macia:'17:17',bcn_munt:'17:20',bcn_gran:'17:25'
+}},
+
+{id:'f64',line:'E23',times:{
+  monistrol_alv:'16:30',monistrol_gom:'16:32',
+  olesa_clos:'16:42',olesa_cat:'16:44',
+  bcn_uni:'17:25',bcn_palau:'17:27',bcn_mc:'17:29',
+  bcn_macia:'17:32',bcn_munt:'17:35',bcn_gran:'17:40'
+}},
+
+{id:'f65',line:'E23',times:{
+  olesa_clos:'17:00',olesa_cat:'17:02',
+  bcn_uni:'17:36',bcn_palau:'17:38',bcn_mc:'17:40'
+}},
+
+{id:'f66',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f67',line:'E22',times:{
+  manresa_est:'16:20',manresa_val:'16:27',
+  castellgali:'16:38',st_vicenc_pi:'16:42',
+  monistrol_alv:'16:53',monistrol_gom:'16:55',
+  olesa_clos:'17:05',olesa_cat:'17:07',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f68',line:'E22',times:{
+  manresa_est:'16:30',manresa_val:'16:37',
+  bcn_uni:'17:40',bcn_palau:'17:42',bcn_mc:'17:44',
+  bcn_macia:'17:47',bcn_munt:'17:50',bcn_gran:'17:55'
+}},
+
+{id:'f69',line:'E22',times:{
+  manresa_est:'17:00',manresa_val:'17:07',
+  bcn_uni:'18:06',bcn_palau:'18:08',bcn_mc:'18:10'
+}},
+
+{id:'f70',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:51',bcn_palau:'17:53',bcn_mc:'17:55'
+}},
+
+{id:'f71',line:'E23',times:{
+  monistrol_alv:'17:15',monistrol_gom:'17:17',
+  olesa_clos:'17:27',olesa_cat:'17:29',
+  bcn_uni:'17:56',bcn_palau:'17:58',bcn_mc:'18:00'
+}},
+
+{id:'f72',line:'E22',times:{
+  manresa_est:'17:30',manresa_val:'17:37',
+  bcn_uni:'18:40',bcn_palau:'18:42',bcn_mc:'18:44',
+  bcn_macia:'18:47',bcn_munt:'18:50',bcn_gran:'18:55'
+}},
+
+{id:'f73',line:'E23',times:{
+  olesa_clos:'17:50',olesa_cat:'17:52',
+  bcn_uni:'18:31',bcn_palau:'18:33',bcn_mc:'18:35'
+}},
+
+{id:'f74',line:'E22',times:{
+  manresa_est:'17:45',manresa_val:'17:52',
+  bcn_uni:'18:51',bcn_palau:'18:53',bcn_mc:'18:55'
+}},
+
+{id:'f75',line:'E23',times:{
+  monistrol_alv:'18:15',monistrol_gom:'18:17',
+  olesa_clos:'18:27',olesa_cat:'18:29',
+  bcn_uni:'19:11',bcn_palau:'19:13',bcn_mc:'19:15'
+}},
+
+{id:'f76',line:'E23',times:{
+  olesa_clos:'18:30',olesa_cat:'18:32',
+  bcn_uni:'19:21',bcn_palau:'19:23',bcn_mc:'19:25'
+}},
+
+{id:'f77',line:'E22',times:{
+  manresa_est:'18:00',manresa_val:'18:07',
+  castellgali:'18:18',st_vicenc_pi:'18:22',
+  monistrol_alv:'18:33',monistrol_gom:'18:35',
+  olesa_clos:'18:45',olesa_cat:'18:47',
+  bcn_uni:'19:30',bcn_palau:'19:32',bcn_mc:'19:34',
+  bcn_macia:'19:37',bcn_munt:'19:40',bcn_gran:'19:45'
+}},
+
+{id:'f78',line:'E22',times:{
+  manresa_est:'18:15',manresa_val:'18:22',
+  bcn_uni:'19:20',bcn_palau:'19:22',bcn_mc:'19:24',
+  bcn_macia:'19:27',bcn_munt:'19:30',bcn_gran:'19:35'
+}},
+
+{id:'f79',line:'E23',times:{
+  monistrol_alv:'18:30',monistrol_gom:'18:32',
+  olesa_clos:'18:42',olesa_cat:'18:44',
+  bcn_uni:'19:25',bcn_palau:'19:27',bcn_mc:'19:29',
+  bcn_mc:'19:32',bcn_macia:'19:35',bcn_munt:'19:40'
+}},
+
+{id:'f80',line:'E22',times:{
+  manresa_est:'18:30',manresa_val:'18:37',
+  bcn_uni:'19:35',bcn_palau:'19:37',bcn_mc:'19:39',
+  bcn_macia:'19:42',bcn_munt:'19:45',bcn_gran:'19:50'
+}},
+
+{id:'f81',line:'E23',times:{
+  olesa_clos:'18:50',olesa_cat:'18:52',
+  bcn_uni:'19:40',bcn_palau:'19:42',bcn_mc:'19:44',
+  bcn_macia:'19:47',bcn_munt:'19:50',bcn_gran:'19:55'
+}},
+
+{id:'f82',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f83',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  castellgali:'19:18',st_vicenc_pi:'19:22',
+  monistrol_alv:'19:33',monistrol_gom:'19:35',
+  olesa_clos:'19:45',olesa_cat:'19:47',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f84',line:'E22',times:{
+  manresa_est:'19:15',manresa_val:'19:22',
+  bcn_uni:'20:25',bcn_palau:'20:27',bcn_mc:'20:29',
+  bcn_macia:'20:32',bcn_munt:'20:35',bcn_gran:'20:40'
+}},
+
+{id:'f85',line:'E22',times:{
+  manresa_est:'19:30',manresa_val:'19:37',
+  bcn_uni:'20:36',bcn_palau:'20:38',bcn_mc:'20:40'
+}},
+
+{id:'f86',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  bcn_uni:'21:06',bcn_palau:'21:08',bcn_mc:'21:10'
+}},
+
+{id:'f91',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  castellgali:'20:18',st_vicenc_pi:'20:22',
+  monistrol_alv:'20:33',monistrol_gom:'20:35',
+  olesa_clos:'20:45',olesa_cat:'20:47',
+  bcn_uni:'21:15',bcn_palau:'21:17',bcn_mc:'21:19',
+  bcn_macia:'21:22',bcn_munt:'21:25',bcn_gran:'21:30'
+}},
+
+{id:'f92',line:'E23',times:{
+  olesa_clos:'20:30',olesa_cat:'20:37',
+  bcn_uni:'21:40',bcn_palau:'21:42',bcn_mc:'21:44',
+  bcn_macia:'21:47',bcn_munt:'21:50',bcn_gran:'21:55'
+}},
+
+{id:'f93',line:'E23',times:{
+  monistrol_alv:'21:00',monistrol_gom:'21:02',
+  olesa_clos:'21:12',olesa_cat:'21:14',
+  bcn_uni:'21:56',bcn_palau:'21:58',bcn_mc:'22:00'
+}},
+
+{id:'f94',line:'E22',times:{
+  manresa_est:'21:00',manresa_val:'21:07',
+  manresa_hos:'21:15',
+  bcn_uni:'22:05',bcn_palau:'22:07',bcn_mc:'22:09',
+  bcn_macia:'22:12',bcn_munt:'22:15',bcn_gran:'22:20'
+}},
+
+{id:'f95',line:'E23',times:{
+  olesa_clos:'22:45',
+  bcn_uni:'23:21',bcn_palau:'23:23',bcn_mc:'23:25'
+}},
+
+{id:'f96',line:'E22',times:{
+  manresa_est:'22:15',manresa_val:'22:22',
+  castellgali:'22:33',st_vicenc_pi:'22:37',
+  monistrol_alv:'22:48',monistrol_gom:'22:50',
+  olesa_clos:'23:00',olesa_cat:'23:02',
+  bcn_uni:'23:45',bcn_palau:'23:47',bcn_mc:'23:49',
+  bcn_macia:'23:52',bcn_munt:'23:55',bcn_gran:'0:00'
+}},
+  ],
+};
+
+// ═══ HORARIS BARCELONA → MANRESA ═══
+// Parades: bcn_via=Gran Via 612 | bcn_167=Còrsega 167 | bcn_marc=Maria Cristina
+//          bcn_rei=Palau Reial | bcn_edu=Zona Universitària
+//          olesa_oli=Olesa Pl.Oli | olesa_clos=Olesa Rotonda Els Closos
+//          monist_gom=Monistrol Can Gomis | monist_balm=Monistrol C.Balmes
+//          st_pi=St.Vicenç Pl.Pi | cast_fa=Castellgalí La Fàbrica
+//          man_hos=Manresa Hospital | man_vall=Manresa Pl.Valldaura | man_est=Manresa Estació
+const BM_FEINER = [
+  {id:'f95',line:'E22',times:{bcn_marc:'4:50', bcn_rei:'4:52', bcn_edu:'4:54', man_vall:'5:52', man_est:'6:00'}},
+  {id:'f96',line:'E23',times:{bcn_marc:'5:05', bcn_rei:'5:07', bcn_edu:'5:09', olesa_oli:'5:38', olesa_clos:'5:40', monist_gom:'5:48', monist_balm:'5:50'}},
+  {id:'f97',line:'E23',times:{bcn_via:'5:15', bcn_167:'5:20', bcn_marc:'5:30', bcn_rei:'5:32', bcn_edu:'5:34', olesa_oli:'6:13', olesa_clos:'6:15', monist_gom:'6:23', monist_balm:'6:25', st_pi:'6:31', cast_fa:'6:33', man_vall:'6:42', man_est:'6:50'}},
+  {id:'f100',line:'E23',times:{bcn_marc:'5:30', bcn_rei:'5:32', bcn_edu:'5:34', olesa_oli:'6:13', olesa_clos:'6:15'}},
+  {id:'f101',line:'E23',times:{bcn_via:'5:30', bcn_167:'5:35', bcn_marc:'5:45', bcn_rei:'5:47', bcn_edu:'5:49', man_vall:'6:57', man_est:'7:05'}},
+  {id:'f102',line:'E23',times:{bcn_marc:'6:00', bcn_rei:'6:02', bcn_edu:'6:04', olesa_oli:'6:53', olesa_clos:'6:55', monist_gom:'7:03', monist_balm:'7:05'}},
+  {id:'f103',line:'E22',times:{bcn_via:'6:00', bcn_167:'6:05', bcn_marc:'6:15', bcn_rei:'6:17', bcn_edu:'6:19', man_vall:'7:12', man_est:'7:20'}},
+  {id:'f104',line:'E22',times:{bcn_marc:'6:15', bcn_rei:'6:17', bcn_edu:'6:19', olesa_oli:'6:58', olesa_clos:'7:00', monist_gom:'7:08', monist_balm:'7:10'}},
+  {id:'f105',line:'E22',times:{bcn_marc:'6:30', bcn_rei:'6:32', bcn_edu:'6:34', man_vall:'7:42', man_est:'7:50'}},
+  {id:'f106',line:'E22',times:{bcn_marc:'6:45', bcn_rei:'6:47', bcn_edu:'6:49', olesa_oli:'7:33', olesa_clos:'7:35', monist_gom:'7:43', monist_balm:'7:45'}},
+  {id:'f107',line:'E22',times:{bcn_marc:'7:00', bcn_rei:'7:02', bcn_edu:'7:04', man_vall:'8:02', man_est:'8:10'}},
+  {id:'f108',line:'E22',times:{bcn_via:'7:00', bcn_167:'7:05', bcn_marc:'7:15', bcn_rei:'7:17', bcn_edu:'7:19', man_vall:'8:07', man_est:'8:15'}},
+  {id:'f109',line:'E23',times:{bcn_marc:'7:15', bcn_rei:'7:17', bcn_edu:'7:19', olesa_oli:'7:42', olesa_clos:'7:44'}},
+  {id:'f110',line:'E23',times:{bcn_marc:'7:30', bcn_rei:'7:32', bcn_edu:'7:34', olesa_oli:'7:57', olesa_clos:'7:59'}},
+  {id:'f111',line:'E22',times:{bcn_marc:'7:30', bcn_rei:'7:32', bcn_edu:'7:34', man_vall:'8:32', man_est:'8:40'}},
+  {id:'f112',line:'E22',times:{bcn_via:'7:20', bcn_167:'7:25', bcn_marc:'7:35', bcn_rei:'7:37', bcn_edu:'7:39', olesa_oli:'8:18', olesa_clos:'8:20', monist_gom:'8:28', monist_balm:'8:30', st_pi:'8:36', cast_fa:'8:38', man_vall:'8:47', man_est:'8:55'}},
+  {id:'f113',line:'E23',times:{bcn_marc:'7:45', bcn_rei:'7:47', bcn_edu:'7:49', olesa_oli:'8:33', olesa_clos:'8:35'}},
+  {id:'f114',line:'E23',times:{bcn_marc:'7:45', bcn_rei:'7:47', bcn_edu:'7:49', olesa_oli:'8:33', olesa_clos:'8:35', monist_gom:'8:43', monist_balm:'8:45'}},
+  {id:'f115',line:'E22',times:{bcn_via:'8:00', bcn_167:'8:05', bcn_marc:'8:15', bcn_rei:'8:17', bcn_edu:'8:19', man_vall:'9:12', man_est:'9:20'}},
+  {id:'f116',line:'E22',times:{bcn_marc:'8:05', bcn_rei:'8:07', bcn_edu:'8:09', man_vall:'9:07', man_est:'9:15'}},
+  {id:'f117',line:'E23',times:{bcn_marc:'8:05', bcn_rei:'8:07', bcn_edu:'8:09', olesa_oli:'8:33', olesa_clos:'8:35'}},
+  {id:'f118',line:'E22',times:{bcn_via:'8:15', bcn_167:'8:20', bcn_marc:'8:30', bcn_rei:'8:32', bcn_edu:'8:34', man_vall:'9:27', man_est:'9:35'}},
+  {id:'f119',line:'E23',times:{bcn_via:'8:30', bcn_167:'8:35', bcn_marc:'8:45', bcn_rei:'8:47', bcn_edu:'8:49', olesa_oli:'9:23', olesa_clos:'9:25', monist_gom:'9:33', monist_balm:'9:35'}},
+  {id:'f120',line:'E22',times:{bcn_via:'8:50', bcn_167:'8:55', bcn_marc:'9:05', bcn_rei:'9:07', bcn_edu:'9:09', olesa_oli:'9:53', olesa_clos:'9:55', monist_gom:'10:03', monist_balm:'10:05', st_pi:'10:11', cast_fa:'10:13', man_vall:'10:22', man_est:'10:30'}},
+  {id:'f121',line:'E22',times:{bcn_marc:'9:00', bcn_rei:'9:02', bcn_edu:'9:04', man_vall:'10:02', man_est:'10:10'}},
+  {id:'f122',line:'E23',times:{bcn_via:'9:15', bcn_167:'9:20', bcn_marc:'9:30', bcn_rei:'9:32', bcn_edu:'9:34', olesa_oli:'10:08', olesa_clos:'10:10'}},
+  {id:'f123',line:'E22',times:{bcn_via:'9:30', bcn_167:'9:35', bcn_marc:'9:45', bcn_rei:'9:47', bcn_edu:'9:49', man_vall:'10:42', man_est:'10:50'}},
+  {id:'f124',line:'E23',times:{bcn_marc:'10:00', bcn_rei:'10:02', bcn_edu:'10:04', olesa_oli:'10:38', olesa_clos:'10:40', monist_gom:'10:48', monist_balm:'10:50'}},
+  {id:'f125',line:'E22',times:{bcn_via:'10:00', bcn_167:'10:05', bcn_marc:'10:15', bcn_rei:'10:17', bcn_edu:'10:19', man_vall:'11:12', man_est:'11:20'}},
+  {id:'f126',line:'E22',times:{bcn_marc:'10:30', bcn_rei:'10:32', bcn_edu:'10:34', man_vall:'11:32', man_est:'11:40'}},
+  {id:'f127',line:'E22',times:{bcn_marc:'10:40', bcn_rei:'10:42', bcn_edu:'10:44', olesa_oli:'11:23', olesa_clos:'11:25'}},
+  {id:'f128',line:'E22',times:{bcn_via:'10:50', bcn_167:'10:55', bcn_marc:'11:05', bcn_rei:'11:07', bcn_edu:'11:09', olesa_oli:'11:53', olesa_clos:'11:55', monist_gom:'12:03', monist_balm:'12:05', st_pi:'12:11', cast_fa:'12:13', man_vall:'12:22', man_est:'12:30'}},
+  {id:'f129',line:'E22',times:{bcn_via:'11:00', bcn_167:'11:05', bcn_marc:'11:15', bcn_rei:'11:17', bcn_edu:'11:19', man_vall:'12:12', man_est:'12:20'}},
+  {id:'f130',line:'E23',times:{bcn_via:'11:15', bcn_167:'11:20', bcn_marc:'11:30', bcn_rei:'11:32', bcn_edu:'11:34', olesa_oli:'12:08', olesa_clos:'12:10', monist_gom:'12:18', monist_balm:'12:20'}},
+  {id:'f131',line:'E22',times:{bcn_via:'11:30', bcn_167:'11:35', bcn_marc:'11:45', bcn_rei:'11:47', bcn_edu:'11:49', man_vall:'12:42', man_est:'12:50'}},
+  {id:'f132',line:'E23',times:{bcn_via:'11:50', bcn_167:'11:55', bcn_marc:'12:05', bcn_rei:'12:07', bcn_edu:'12:09', olesa_oli:'12:43', olesa_clos:'12:45'}},
+  {id:'f133',line:'E22',times:{bcn_via:'12:00', bcn_167:'12:00', bcn_marc:'12:02', bcn_rei:'12:04', bcn_edu:'12:04', man_vall:'13:02', man_est:'13:10'}},
+  {id:'f134',line:'E22',times:{bcn_via:'12:30', bcn_167:'12:35', bcn_marc:'12:45', bcn_rei:'12:47', bcn_edu:'12:49', man_hos:'13:35', man_vall:'13:42', man_est:'13:50'}},
+  {id:'f135',line:'E23',times:{bcn_via:'12:50', bcn_167:'12:55', bcn_marc:'13:05', bcn_rei:'13:07', bcn_edu:'13:09', olesa_oli:'13:53', olesa_clos:'13:55', monist_gom:'14:03', monist_balm:'14:05', st_pi:'14:11', cast_fa:'14:13', man_vall:'14:22', man_est:'14:30'}},
+  {id:'f136',line:'E23',times:{bcn_marc:'13:00', bcn_rei:'13:02', bcn_edu:'13:04', olesa_oli:'13:38', olesa_clos:'13:40'}},
+  {id:'f137',line:'E22',times:{bcn_via:'13:00', bcn_167:'13:05', bcn_marc:'13:15', bcn_rei:'13:17', bcn_edu:'13:19', man_vall:'14:12', man_est:'14:20'}},
+  {id:'f138',line:'E22',times:{bcn_marc:'13:30', bcn_rei:'13:32', bcn_edu:'13:34', man_vall:'14:32', man_est:'14:40'}},
+  {id:'f139',line:'E23',times:{bcn_marc:'13:45', bcn_rei:'13:47', bcn_edu:'13:49', olesa_oli:'14:23', olesa_clos:'14:25', monist_gom:'14:33', monist_balm:'14:35'}},
+  {id:'f140',line:'E22',times:{bcn_via:'14:00', bcn_167:'14:05', bcn_marc:'14:15', bcn_rei:'14:17', bcn_edu:'14:19', man_vall:'15:12', man_est:'15:20'}},
+  {id:'f141',line:'E22',times:{bcn_via:'14:30', bcn_167:'14:35', bcn_marc:'14:45', bcn_rei:'14:47', bcn_edu:'14:49', man_vall:'15:42', man_est:'15:50'}},
+  {id:'f142',line:'E22',times:{bcn_via:'14:30', bcn_167:'14:35', bcn_marc:'14:45', bcn_rei:'14:47', bcn_edu:'14:49', olesa_oli:'15:23', olesa_clos:'15:25'}},
+  {id:'f143',line:'E23',times:{bcn_marc:'15:00', bcn_rei:'15:02', bcn_edu:'15:04', olesa_oli:'15:43', olesa_clos:'15:45', monist_gom:'15:53', monist_balm:'15:55'}},
+  {id:'f144',line:'E22',times:{bcn_marc:'15:00', bcn_rei:'15:02', bcn_edu:'15:04', man_vall:'16:02', man_est:'16:10'}},
+  {id:'f145',line:'E23',times:{bcn_via:'15:15', bcn_167:'15:20', bcn_marc:'15:30', bcn_rei:'15:32', bcn_edu:'15:34', olesa_oli:'16:13', olesa_clos:'16:15', monist_gom:'16:23', monist_balm:'16:25'}},
+  {id:'f146',line:'E23',times:{bcn_marc:'15:30', bcn_rei:'15:32', bcn_edu:'15:34', olesa_oli:'16:13', olesa_clos:'16:15', monist_gom:'16:23', monist_balm:'16:25'}},
+  {id:'f147',line:'E23',times:{bcn_marc:'15:45', bcn_rei:'15:47', bcn_edu:'15:49', olesa_oli:'16:28', olesa_clos:'16:30'}},
+  {id:'f148',line:'E22',times:{bcn_via:'15:30', bcn_167:'15:35', bcn_marc:'15:45', bcn_rei:'15:47', bcn_edu:'15:49', man_vall:'16:42', man_est:'16:50'}},
+  {id:'f149',line:'E22',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', man_vall:'17:12', man_est:'17:20'}},
+  {id:'f150',line:'E23',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'17:03', olesa_clos:'17:05'}},
+  {id:'f151',line:'E23',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'16:53', olesa_clos:'16:55', monist_gom:'17:03', monist_balm:'17:05', st_pi:'17:11', cast_fa:'17:33', man_vall:'17:22', man_est:'17:30'}},
+  {id:'f152',line:'E22',times:{bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', man_vall:'17:12', man_est:'17:20'}},
+  {id:'f153',line:'E23',times:{bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'16:53', olesa_clos:'16:55'}},
+  {id:'f154',line:'E23',times:{bcn_marc:'16:30', bcn_rei:'16:32', bcn_edu:'16:34', man_vall:'17:32', man_est:'17:40'}},
+  {id:'f155',line:'E23',times:{bcn_marc:'16:30', bcn_rei:'16:32', bcn_edu:'16:34', olesa_oli:'17:08', olesa_clos:'17:10'}},
+  {id:'f156',line:'E23',times:{bcn_via:'16:45', bcn_167:'16:50', bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', man_vall:'18:02', man_est:'18:10'}},
+  {id:'f157',line:'E23',times:{bcn_via:'16:45', bcn_167:'16:50', bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', olesa_oli:'17:38', olesa_clos:'17:40', monist_gom:'17:48', monist_balm:'17:50'}},
+  {id:'f158',line:'E23',times:{bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', olesa_oli:'17:43', olesa_clos:'17:45'}},
+  {id:'f159',line:'E22',times:{bcn_via:'17:00', bcn_167:'17:05', bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', man_vall:'18:17', man_est:'18:25'}},
+  {id:'f160',line:'E22',times:{bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', man_vall:'18:17', man_est:'18:25'}},
+  {id:'f161',line:'E23',times:{bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', olesa_oli:'17:58', olesa_clos:'18:00', monist_gom:'18:08', monist_balm:'18:10'}},
+  {id:'f162',line:'E22',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', man_vall:'18:47', man_est:'18:55'}},
+  {id:'f163',line:'E23',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:28', olesa_clos:'18:30'}},
+  {id:'f164',line:'E22',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:33', olesa_clos:'18:35', monist_gom:'18:43', monist_balm:'18:45', st_pi:'18:51', cast_fa:'18:53', man_vall:'19:02', man_est:'19:10'}},
+  {id:'f165',line:'E23',times:{bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:28', olesa_clos:'18:30'}},
+  {id:'f166',line:'E23',times:{bcn_via:'17:45', bcn_167:'17:50', bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', olesa_oli:'18:43', olesa_clos:'18:45', monist_gom:'18:53', monist_balm:'18:55'}},
+  {id:'f167',line:'E22',times:{bcn_via:'17:45', bcn_167:'17:50', bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', man_vall:'19:02', man_est:'19:10'}},
+  {id:'f168',line:'E23',times:{bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', olesa_oli:'18:43', olesa_clos:'18:45'}},
+  {id:'f169',line:'E22',times:{bcn_via:'18:00', bcn_167:'18:05', bcn_marc:'18:15', bcn_rei:'18:17', bcn_edu:'18:19', man_vall:'19:17', man_est:'19:25'}},
+  {id:'f170',line:'E23',times:{bcn_marc:'18:15', bcn_rei:'18:17', bcn_edu:'18:19', olesa_oli:'18:53', olesa_clos:'18:55'}},
+  {id:'f171',line:'E23',times:{bcn_via:'18:15', bcn_167:'18:20', bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', man_vall:'19:32', man_est:'19:40'}},
+  {id:'f172',line:'E23',times:{bcn_via:'18:15', bcn_167:'18:20', bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', olesa_oli:'18:58', olesa_clos:'19:00', monist_gom:'19:08', monist_balm:'19:10'}},
+  {id:'f173',line:'E22',times:{bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', man_vall:'19:32', man_est:'19:40'}},
+  {id:'f174',line:'E22',times:{bcn_marc:'18:45', bcn_rei:'18:47', bcn_edu:'18:49', man_vall:'19:47', man_est:'19:55'}},
+  {id:'f175',line:'E23',times:{bcn_marc:'18:45', bcn_rei:'18:47', bcn_edu:'18:49', olesa_oli:'19:33', olesa_clos:'19:35', monist_gom:'19:43', monist_balm:'19:45'}},
+  {id:'f176',line:'E23',times:{bcn_via:'19:00', bcn_167:'19:05', bcn_marc:'19:15', bcn_rei:'19:17', bcn_edu:'19:19', olesa_oli:'20:03', olesa_clos:'20:05', monist_gom:'20:13', monist_balm:'20:15', st_pi:'20:21', cast_fa:'20:23', man_vall:'20:32', man_est:'20:40'}},
+  {id:'f177',line:'E22',times:{bcn_marc:'19:00', bcn_rei:'19:02', bcn_edu:'19:04', man_vall:'20:02', man_est:'20:10'}},
+  {id:'f178',line:'E22',times:{bcn_marc:'19:30', bcn_rei:'19:32', bcn_edu:'19:34', man_vall:'20:32', man_est:'20:40'}},
+  {id:'f179',line:'E23',times:{bcn_marc:'19:30', bcn_rei:'19:32', bcn_edu:'19:34', olesa_oli:'20:08', olesa_clos:'20:10', monist_gom:'20:18', monist_balm:'20:20'}},
+  {id:'f180',line:'E22',times:{bcn_marc:'19:45', bcn_rei:'19:47', bcn_edu:'19:49', man_vall:'20:47', man_est:'20:55'}},
+  {id:'f181',line:'E22',times:{bcn_via:'20:15', bcn_167:'20:20', bcn_marc:'20:30', bcn_rei:'20:32', bcn_edu:'20:34', man_vall:'21:27', man_est:'21:35'}},
+  {id:'f182',line:'E23',times:{bcn_via:'20:30', bcn_167:'20:35', bcn_marc:'20:45', bcn_rei:'20:47', bcn_edu:'20:49', olesa_oli:'21:33', olesa_clos:'21:35', monist_gom:'21:43', monist_balm:'21:45', st_pi:'21:51', cast_fa:'21:53', man_vall:'22:02', man_est:'22:10'}},
+  {id:'f183',line:'E22',times:{bcn_via:'20:45', bcn_167:'20:50', bcn_marc:'21:00', bcn_rei:'21:02', bcn_edu:'21:04', man_vall:'21:57', man_est:'22:05'}},
+  {id:'f184',line:'E22',times:{bcn_marc:'21:15', bcn_rei:'21:17', bcn_edu:'21:19', man_vall:'22:17', man_est:'22:25'}},
+  {id:'f185',line:'E23',times:{bcn_via:'21:20', bcn_167:'21:25', bcn_marc:'21:35', bcn_rei:'21:37', bcn_edu:'21:39', olesa_oli:'22:18', olesa_clos:'22:20'}},
+  {id:'f186',line:'E22',times:{bcn_via:'21:45', bcn_167:'21:50', bcn_marc:'22:00', bcn_rei:'22:02', bcn_edu:'22:04', man_vall:'23:07', man_est:'23:15'}},
+  {id:'f187',line:'E23',times:{bcn_via:'22:00', bcn_167:'22:05', bcn_marc:'22:15', bcn_rei:'22:17', bcn_edu:'22:19', olesa_oli:'23:03', olesa_clos:'23:05', monist_gom:'23:13', monist_balm:'23:15', st_pi:'23:21', cast_fa:'23:23', man_vall:'23:32', man_est:'23:40'}},
+  {id:'f188',line:'E23',times:{bcn_marc:'22:00', bcn_rei:'22:02', bcn_edu:'22:04', olesa_oli:'22:43', olesa_clos:'22:45'}},
+  {id:'f189',line:'E23',times:{bcn_via:'23:40', bcn_167:'23:45', bcn_marc:'23:55', bcn_rei:'23:57', bcn_edu:'23:59', olesa_oli:'0:43', olesa_clos:'0:45', monist_gom:'0:53', monist_balm:'0:55', st_pi:'1:01', cast_fa:'1:03', man_vall:'1:12', man_est:'1:20'}}
+];
+
+const dow = new Date().getDay();
+let currentDay = dow === 0 ? 'diumenge' : dow === 6 ? 'dissabte' : 'feiner';
+let myVotes = {}, sharing = {};
+
+function toMins(t) {
+  if (!t) return -1;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function nowMins() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+function setDay(d) {
+  currentDay = d;
+  const banner = document.getElementById('day-banner');
+  const typeEl = document.getElementById('day-type-text');
+  const descEl = document.getElementById('day-desc-text');
+  banner.className = 'day-banner';
+  ['btn-f','btn-s','btn-d'].forEach(id => { const el = document.getElementById(id); if(el) el.className = 'ds-btn'; });
+  if (d === 'feiner') {
+    banner.classList.add('feiner');
+    typeEl.textContent = 'Dia feiner';
+    descEl.textContent = 'Servei complet · dilluns a divendres (excepte agost)';
+    document.getElementById('btn-f').classList.add('active-f');
+  } else if (d === 'dissabte') {
+    banner.classList.add('dissabte');
+    typeEl.textContent = 'Dissabte i festiu';
+    descEl.textContent = 'Servei reduït de cap de setmana i dies festius';
+    document.getElementById('btn-s').classList.add('active-s');
+  } else {
+    banner.classList.add('festiu');
+    typeEl.textContent = 'Diumenge';
+    descEl.textContent = 'Servei de diumenge (excepte festius)';
+    document.getElementById('btn-d').classList.add('active-d');
+  }
+  doSearch();
+}
+
+function loadVotes() {
+  // Vots ocupacio/puntualitat - nomes re-renderitza si hi ha canvis externs
+  db.collection("votes").onSnapshot({ includeMetadataChanges: false }, snapshot => {
+    let changed = false;
+    snapshot.docChanges().forEach(change => {
+      const v = change.doc.data();
+      const key = v.tripId + '_' + v.type;
+      if (v.date !== TODAY) return; // ignorem vots sense data o d'altres dies
+      if (change.type === 'removed') { delete globalVotes[key]; changed = true; }
+      else if (globalVotes[key] !== v.value) { globalVotes[key] = v.value; changed = true; }
+    });
+    if (changed) doSearch();
+  });
+
+  // Valoracions 1-5 - calcula mitja per bus
+  db.collection("ratings").onSnapshot(snapshot => {
+    const raw = {};
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.date !== TODAY) return; // ignorem ratings sense data o d'altres dies
+      if (!raw[d.tripId]) raw[d.tripId] = { sum: 0, count: 0 };
+      raw[d.tripId].sum += d.stars;
+      raw[d.tripId].count += 1;
+    });
+    globalRatings = raw;
+    doSearch();
+  });
+
+  // Ubicacions en temps real
+  db.collection("locations").onSnapshot(snapshot => {
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.date !== TODAY) { delete userLocations[d.tripId]; return; }
+      if (Date.now() - d.time < 2 * 60 * 60 * 1000) {
+        userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora };
+      } else { delete userLocations[d.tripId]; }
+    });
+    doSearch();
+  });
+
+  // Confirmacions "Ja ha passat" en temps real
+  db.collection("confirmed").onSnapshot(snapshot => {
+    const raw = {};
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.date !== TODAY) return; // ignorem confirmacions sense data o d'altres dies
+      if (!raw[d.tripId]) raw[d.tripId] = 0;
+      raw[d.tripId] += 1;
+    });
+    globalConfirmed = raw;
+    doSearch();
+  });
+
+  // Historial dels ultims 14 dies per fer prediccions
+  // Llegim tots els vots menys els d'avui
+  db.collection("votes").onSnapshot(snapshot => {
+    const hist = {};
+    snapshot.forEach(doc => {
+      const v = doc.data();
+      if (!v.date || v.date === TODAY) return; // avui no computa com a historial
+      if (!hist[v.tripId]) hist[v.tripId] = { occ: {}, time: {}, days: new Set() };
+      if (v.type === 'occ') {
+        hist[v.tripId].occ[v.value] = (hist[v.tripId].occ[v.value] || 0) + 1;
+        hist[v.tripId].days.add(v.date);
+      }
+      if (v.type === 'time') {
+        hist[v.tripId].time[v.value] = (hist[v.tripId].time[v.value] || 0) + 1;
+      }
+    });
+    // Convertir Sets a counts
+    Object.keys(hist).forEach(id => {
+      hist[id].days = hist[id].days.size;
+    });
+    globalHistory = hist;
+    doSearch();
+  });
+}
+
+// Clau de data d'avui: YYYYMMDD
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+}
+const TODAY = todayKey();
+
+// Ordre geografic de les parades Manresa -> Barcelona
+const STOP_ORDER = [
+  'manresa_est','manresa_val','manresa_hos','castellgali','st_vicenc_pi',
+  'monistrol_alv','monistrol_gom','olesa_clos','olesa_cat',
+  'bcn_uni','bcn_palau','bcn_mc','bcn_macia','bcn_munt','bcn_gran'
+];
+
+// Retorna el tipus de dia seguent (feiner->dissabte->diumenge->feiner...)
+function nextDayType(dayType) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dow = tomorrow.getDay(); // 0=diu, 6=dis
+  return dow === 0 ? 'diumenge' : dow === 6 ? 'dissabte' : 'feiner';
+}
+
+function getTripsForDay(dayType, orig, dest) {
+  const pool = (typeof currentDir !== 'undefined' && currentDir === 'bm')
+    ? BM_FEINER
+    : (T[dayType] || []);
+  return pool
+    .filter(t => t.times[orig] && t.times[dest])
+    .filter(t => {
+      const o = toMins(t.times[orig]), d = toMins(t.times[dest]);
+      if (o < 0 || d < 0) return false;
+      if (o > 22*60 && d < 3*60) return true;
+      return o < d;
+    })
+    .sort((a, b) => toMins(a.times[orig]) - toMins(b.times[orig]));
+}
+
+function doSearch() {
+  const orig = document.getElementById('sel-orig').value;
+  const dest = document.getElementById('sel-dest').value;
+
+  if (orig === dest) {
+    document.getElementById('results').innerHTML = '<div class="no-results">Selecciona parades diferents.</div>';
+    return;
+  }
+
+  const origIdx = STOP_ORDER.indexOf(orig);
+  const destIdx = STOP_ORDER.indexOf(dest);
+
+  // Bloquejar ruta inversa - nomes tenim horaris Manresa->Barcelona
+  if (origIdx > destIdx) {
+    document.getElementById('results').innerHTML = `
+      <div class="ruta-error">
+        Aquesta app només té els horaris en direcció<br>
+        <strong>Manresa → Barcelona</strong>.<br>
+        Per anar de Barcelona a Manresa, consulta
+        <a href="https://catalunya.monbus.es" target="_blank" style="color:#A32D2D;">catalunya.monbus.es</a>
+      </div>`;
+    return;
+  }
+
+  const tripsAvui = getTripsForDay(currentDay, orig, dest);
+  const now = nowMins();
+
+  let passed = null, nextList = [];
+  for (const t of tripsAvui) {
+    if (toMins(t.times[orig]) <= now) passed = t;
+    else nextList.push(t);
+  }
+
+  // Si és de matinada (00:00-05:29) i no hi ha bus passat avui,
+  // busquem el darrer bus d'ahir (sempre feiner) com a "bus anterior"
+  if (!passed && now < 5 * 60 + 30) {
+    const tripsAhir = getTripsForDay('feiner', orig, dest);
+    if (tripsAhir.length > 0) {
+      // El darrer bus d'ahir és el que tenia l'hora de sortida més tardana
+      passed = tripsAhir[tripsAhir.length - 1];
+    }
+  }
+
+  // Si queden menys de 4 busos avui, afegim els primers de dema
+  const TOTAL_NEXT = 4;
+  if (nextList.length < TOTAL_NEXT) {
+    const tomorrowType = nextDayType(currentDay);
+    const tripsDema = getTripsForDay(tomorrowType, orig, dest);
+    const needed = TOTAL_NEXT - nextList.length;
+    const demaBusos = tripsDema.slice(0, needed).map(t => ({ ...t, _dema: true, _demaTipus: tomorrowType }));
+    nextList = [...nextList, ...demaBusos];
+  }
+
+  let html = '';
+  if (passed) {
+    html += '<p class="section-label">Bus anterior</p>';
+    html += renderCard(passed, orig, dest, 'passed');
+  }
+
+  // Separar busos d'avui i de dema
+  const avuiList = nextList.filter(t => !t._dema);
+  const demaList = nextList.filter(t => t._dema);
+
+  if (avuiList.length > 0) {
+    html += '<p class="section-label">Proper bus</p>';
+    html += renderCard(avuiList[0], orig, dest, 'next');
+    if (avuiList.length > 1) {
+      html += '<p class="section-label">Següents busos</p>';
+      for (let i = 1; i < avuiList.length; i++)
+        html += renderCard(avuiList[i], orig, dest, '');
+    }
+  }
+
+  if (demaList.length > 0) {
+    const tipusLabel = demaList[0]._demaTipus === 'dissabte' ? 'Dissabte'
+      : demaList[0]._demaTipus === 'diumenge' ? 'Diumenge' : 'Demà';
+    html += `<p class="section-label">${tipusLabel} — primers busos</p>`;
+    for (const t of demaList)
+      html += renderCard(t, orig, dest, '');
+  }
+
+  if (!passed && nextList.length === 0)
+    html = '<div class="no-results">No hi ha busos per a aquesta ruta avui.</div>';
+
+  document.getElementById('results').innerHTML = html;
+  // Inicialitzar pills amb posició correcta
+  requestAnimationFrame(() => initPills());
+}
+
+// Retorna els badges de predicció basats en l'historial dels últims dies
+// Llindar: si el 60% o mes dels dies va tenir aquell valor -> predicció
+function predictionHtml(tripId) {
+  const h = globalHistory[tripId];
+  if (!h || h.days < 2) return ''; // cal almenys 2 dies d'historial
+
+  const badges = [];
+  const days = h.days;
+
+  // Predicció d'ocupació
+  const occPle  = h.occ['ple']  || 0;
+  const occMig  = h.occ['mig']  || 0;
+  const occBuit = h.occ['buit'] || 0;
+  const occTotal = occPle + occMig + occBuit;
+  if (occTotal > 0) {
+    if (occPle / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-ple">Probablement anirà ple</span>');
+    else if (occMig / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-mig">Probablement anirà mig ple</span>');
+    else if (occBuit / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-buit">Probablement anirà buit</span>');
+  }
+
+  // Predicció de puntualitat
+  const timeTard = h.time['tard'] || 0;
+  const timePunt = h.time['punt'] || 0;
+  const timeTotal = timeTard + timePunt;
+  if (timeTotal > 0) {
+    if (timeTard / timeTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-tard">Probablement anirà tard</span>');
+  }
+
+  if (badges.length === 0) return '';
+
+  return `<div class="predict-wrap">
+    ${badges.join('')}
+    <span class="predict-label">Basat en ${days} dia${days !== 1 ? 'es' : ''} anteriors</span>
+  </div>`;
+}
+
+function mapHtml(tripId) {
+  const loc = userLocations[tripId];
+  if (!loc) return '';
+  return `<div style="margin-top:10px;">
+    <iframe width="100%" height="180" style="border-radius:10px;border:0;" loading="lazy"
+      src="https://www.openstreetmap.org/export/embed.html?bbox=${loc.lng-0.01}%2C${loc.lat-0.01}%2C${loc.lng+0.01}%2C${loc.lat+0.01}&marker=${loc.lat}%2C${loc.lng}">
+    </iframe>
+    <div style="font-size:10px;color:#999;text-align:center;margin-top:3px;">Darrera ubicació reportada a les ${loc.hora}</div>
+  </div>`;
+}
+
+function ratingHtml(tripId) {
+  const r = globalRatings[tripId];
+  return `<div class="rating-wrap">
+    <div class="stars">
+      ${[1,2,3,4,5].map(n => `<div class="star ${(myRatings[tripId]||0)>=n?'active':''}" onclick="rateTrip('${tripId}',${n})">${n}</div>`).join('')}
+    </div>
+    ${r && r.count > 0
+      ? `<div class="rating-avg"><span>${(r.sum/r.count).toFixed(1)}</span>/5 (${r.count} ${r.count===1?'vot':'vots'})</div>`
+      : '<div class="rating-avg">Sense valoracions</div>'}
+  </div>`;
+}
+
+function renderCard(trip, orig, dest, type) {
+  const dep = trip.times[orig];
+  const arr = trip.times[dest];
+  const isPassed = type === 'passed';
+  const isNext = type === 'next';
+  // Interactiu = només el bus anterior i el proper bus, NO els "Següents busos"
+  const interactive = isPassed || isNext;
+
+  const myO = globalVotes[trip.id + '_occ'];
+  const myT = globalVotes[trip.id + '_time'];
+
+  const confirmedCount = globalConfirmed[trip.id] || 0;
+  const isConfirmed = confirmedCount > 0;
+  const alreadyConfirmed = sessionStorage.getItem('confirmed_' + trip.id);
+
+  // Badges només per a busos interactius (passat i proper)
+  let occBadge = !interactive ? '' :
+      myO === 'ple' ? `<span class="badge br">Ple</span>`
+    : myO === 'mig' ? `<span class="badge ba">Mig ple</span>`
+    : myO === 'buit' ? `<span class="badge bg">Buit</span>`
+    : isPassed ? `<span class="badge bx">Sense vots</span>` : '';
+
+  let timeBadge = !interactive ? '' :
+      myT === 'tard' ? `<span class="badge ba">Retard</span>`
+    : myT === 'punt' ? `<span class="badge bg">Puntual</span>` : '';
+
+  const shareConfirm = sharing[trip.id]
+    ? `<div class="share-confirm">Ubicació compartida a les ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')} · gràcies!</div>`
+    : '';
+
+  // ── BUS ANTERIOR (interactiu) ─────────────────────────────────────────
+  const passedSection = isPassed ? `
+    ${ratingHtml(trip.id)}
+    <button class="share-btn ${sharing[trip.id]?'on':''}" onclick="ts('${trip.id}')" ${sharing[trip.id]?'disabled':''}>
+      ${sharing[trip.id]?'Ubicació enviada':'📍 Estava en aquest bus · comparteix ubicació'}
+    </button>
+    ${mapHtml(trip.id)}
+    <button
+      class="btn-passed ${alreadyConfirmed ? 'done' : ''}"
+      onclick="${alreadyConfirmed ? '' : "askConfirmPassed('" + trip.id + "')"}"
+      ${alreadyConfirmed ? 'disabled' : ''}>
+      ${alreadyConfirmed
+        ? '✓ El bus de les ' + dep + ' ja ha passat · ' + confirmedCount + ' ho confirmen'
+        : '🚌 Ja ha passat' + (confirmedCount > 0 ? ' · ' + confirmedCount + ' persones ho confirmen' : '')}
+    </button>` : '';
+
+  // ── PROPER BUS (interactiu) ───────────────────────────────────────────
+  const nextSection = isNext ? `
+    ${predictionHtml(trip.id)}
+    <div class="vote-section">
+      <div>
+        <div class="vote-label">Ocupació</div>
+        <div class="pill-wrap occ" id="pill-${trip.id}-occ" data-id="${trip.id}" data-type="occ">
+          <div class="pill-track"></div>
+          <div class="pill-opt ${myO==='buit'?'active active-buit':''}" data-val="buit" onclick="cv('${trip.id}','occ','buit')">Buit</div>
+          <div class="pill-opt ${myO==='mig'?'active active-mig':''}" data-val="mig" onclick="cv('${trip.id}','occ','mig')">Mig</div>
+          <div class="pill-opt ${myO==='ple'?'active active-ple':''}" data-val="ple" onclick="cv('${trip.id}','occ','ple')">Ple</div>
+        </div>
+      </div>
+      <div>
+        <div class="vote-label">Puntualitat</div>
+        <div class="pill-wrap time" id="pill-${trip.id}-time" data-id="${trip.id}" data-type="time">
+          <div class="pill-track"></div>
+          <div class="pill-opt ${myT==='punt'?'active active-punt':''}" data-val="punt" onclick="cv('${trip.id}','time','punt')">Puntual</div>
+          <div class="pill-opt ${myT==='tard'?'active active-tard':''}" data-val="tard" onclick="cv('${trip.id}','time','tard')">Tard</div>
+        </div>
+      </div>
+    </div>
+    <button class="share-btn ${sharing[trip.id]?'on':''}" onclick="ts('${trip.id}')" ${sharing[trip.id]?'disabled':''}>
+      ${sharing[trip.id]?'Ubicació enviada':'Estic en aquest bus · comparteix ubicació'}
+    </button>
+    ${ratingHtml(trip.id)}
+    ${mapHtml(trip.id)}
+    ${shareConfirm}` : '';
+
+  // ── BUSOS INFORMATIUS (no interactius, només hora i línia) ────────────
+  const cardClass = isPassed
+    ? 'bus-card passed' + (isConfirmed ? ' confirmed' : '')
+    : isNext ? 'bus-card isnext' : 'bus-card';
+
+  if (isPassed) {
+    return `<div class="${cardClass}">
+      <div class="passed-header" onclick="togglePassed('${trip.id}')">
+        <div>
+          <div class="card-time" style="font-size:18px;">${dep}
+            <span style="font-size:11px;font-weight:400;color:#555;margin-left:6px;">Arr. ${arr} · ${trip.line}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="badges">${occBadge}${timeBadge}</div>
+          <span class="passed-chevron" id="chev-${trip.id}">▼</span>
+        </div>
+      </div>
+      <div class="passed-body" id="pbody-${trip.id}">
+        <div style="padding-top:9px;border-top:0.5px solid #2a2a2a;margin-top:8px;">
+          ${passedSection}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="${cardClass}">
+    ${isNext ? '<div class="tag-next">Proper bus</div>' : ''}
+    <div class="card-top">
+      <div>
+        <div class="card-time">${dep}</div>
+        <div class="card-sub">Arr. ${arr} · ${trip.line}</div>
+      </div>
+      <div class="badges">${occBadge}${timeBadge}</div>
+    </div>
+    ${nextSection}
+  </div>`;
+}
+
+function togglePassed(id) {
+  const body = document.getElementById('pbody-' + id);
+  const chev = document.getElementById('chev-' + id);
+  if (!body) return;
+  body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
+}
+
+function cv(id, type, val) {
+  const docId = id + '_' + type;
+  globalVotes[docId] = val;
+  // Moure el pill immediatament sense esperar Firebase
+  movePill(id, type, val);
+  doSearch();
+  db.collection("votes").doc(docId).set({ tripId: id, type: type, value: val, date: TODAY, time: Date.now() })
+    .catch(() => { delete globalVotes[docId]; doSearch(); });
+}
+
+function movePill(id, type, val) {
+  const wrap = document.getElementById('pill-' + id + '-' + type);
+  if (!wrap) return;
+  const track = wrap.querySelector('.pill-track');
+  const opts = wrap.querySelectorAll('.pill-opt');
+  // Treure actiu de tots
+  opts.forEach(o => { o.className = o.className.replace(/active(-\w+)?/g, '').trim(); });
+  // Trobar l'índex de l'opció seleccionada
+  let idx = -1;
+  opts.forEach((o, i) => { if (o.dataset.val === val) idx = i; });
+  if (idx === -1) { track.style.width = '0'; return; }
+  // Calcular posició
+  const opt = opts[idx];
+  track.style.left = opt.offsetLeft + 'px';
+  track.style.width = opt.offsetWidth + 'px';
+  // Color del track i text actiu
+  const colorMap = { buit:'c-buit', mig:'c-mig', ple:'c-ple', punt:'c-punt', tard:'c-tard' };
+  track.className = 'pill-track ' + (colorMap[val] || '');
+  opt.classList.add('active', 'active-' + val);
+}
+
+function initPills() {
+  // Inicialitza tots els pills amb els vots actuals
+  document.querySelectorAll('.pill-wrap').forEach(wrap => {
+    const id = wrap.dataset.id;
+    const type = wrap.dataset.type;
+    if (!id || !type) return;
+    const val = globalVotes[id + '_' + type];
+    if (val) movePill(id, type, val);
+  });
+}
+
+function rateTrip(id, stars) {
+  myRatings[id] = stars;
+  doSearch();
+  const docId = 'rating_' + id + '_' + sessionId;
+  db.collection("ratings").doc(docId).set({ tripId: id, stars: stars, date: TODAY, time: Date.now() })
+    .catch(() => {});
+}
+
+function askConfirmPassed(id) {
+  // Mostrem el modal de doble verificació
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <h3>Confirmes que ja ha passat?</h3>
+      <p>Estàs segur que el bus ja ha passat per la teva parada? Això avisarà a tots els usuaris.</p>
+      <div class="confirm-btns">
+        <button class="confirm-no" onclick="closeConfirm()">Cancel·lar</button>
+        <button class="confirm-yes" onclick="doConfirmPassed('${id}')">Sí, ja ha passat</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeConfirm() {
+  const el = document.getElementById('confirm-overlay');
+  if (el) el.remove();
+}
+
+function doConfirmPassed(id) {
+  closeConfirm();
+  if (sessionStorage.getItem('confirmed_' + id)) return;
+  sessionStorage.setItem('confirmed_' + id, '1');
+  if (!globalConfirmed[id]) globalConfirmed[id] = 0;
+  globalConfirmed[id] += 1;
+  doSearch();
+  const docId = 'confirmed_' + id + '_' + sessionId;
+  db.collection("confirmed").doc(docId).set({ tripId: id, date: TODAY, time: Date.now() })
+    .catch(() => {});
+}
+function ts(id) {
+  // Primer mostrem el modal de doble verificació
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <h3>Compartir ubicació</h3>
+      <p>Estàs segur que vols compartir la teva ubicació actual? Tots els usuaris la podran veure.</p>
+      <div class="confirm-btns">
+        <button class="confirm-no" onclick="closeConfirm()">Cancel·lar</button>
+        <button class="confirm-yes" onclick="doShareLocation('${id}')">Sí, compartir</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function doShareLocation(id) {
+  closeConfirm();
+  if (!navigator.geolocation) { alert("Navegador sense geolocalitzacio."); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const hora = new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0');
+      sharing[id] = true;
+      userLocations[id] = { lat, lng, hora };
+      doSearch();
+      db.collection("locations").doc(id).set({ tripId: id, lat, lng, hora, date: TODAY, time: Date.now() });
+    },
+    () => { alert("No s'ha pogut obtenir la ubicacio. Dona permisos de localitzacio."); }
+  );
+}
+
+// Color gris mentre no s'ha seleccionat res
+function updateSelectColor(sel) {
+  if (!sel) return;
+  sel.classList.toggle('placeholder', sel.value === '');
+}
+
+// Els selectors s'inicialitzen quan l'usuari entra a l'app
+// No els cridem aqui perque app-content esta amagat i getElementById retorna null
+function initSelectors() {
+  const selOrig = document.getElementById('sel-orig');
+  const selDest = document.getElementById('sel-dest');
+  if (selOrig) selOrig.addEventListener('change', () => updateSelectColor(selOrig));
+  if (selDest) selDest.addEventListener('change', () => updateSelectColor(selDest));
+}
+
+// Parades Manresa->Barcelona
+const OPTS_MB_ORIG = `<option value="" disabled selected style="color:#bbb;">Selecciona parada d'origen</option>
+<option value="manresa_est">Manresa — Estació d'autobusos</option>
+<option value="manresa_val">Manresa — Plaça Valldaura</option>
+<option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+<option value="castellgali">Castellgalí — La Fàbrica</option>
+<option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+<option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+<option value="monistrol_gom">Monistrol — Can Gomis</option>
+<option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+<option value="olesa_cat">Olesa de Montserrat — Pl. Catalunya</option>
+<option value="bcn_uni">Barcelona — Zona Universitària</option>
+<option value="bcn_palau">Barcelona — Palau Reial</option>
+<option value="bcn_mc">Barcelona — Maria Cristina</option>
+<option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+<option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+<option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>`;
+const OPTS_MB_DEST = OPTS_MB_ORIG.replace("Selecciona parada d'origen","Selecciona destinació");
+
+// Parades Barcelona->Manresa
+const OPTS_BM_ORIG = `<option value="" disabled selected style="color:#444;">Selecciona parada d'origen</option>
+<option value="bcn_via">Barcelona — Gran Via de les Corts, 612</option>
+<option value="bcn_167">Barcelona — Còrsega, 167</option>
+<option value="bcn_marc">Barcelona — Maria Cristina</option>
+<option value="bcn_rei">Barcelona — Palau Reial</option>
+<option value="bcn_edu">Barcelona — Zona Universitària</option>
+<option value="olesa_oli">Olesa de Montserrat — Plaça de l'Oli</option>
+<option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+<option value="monist_gom">Monistrol de Montserrat — Can Gomis</option>
+<option value="monist_balm">Monistrol de Montserrat — C. Balmes (Pont Gòtic)</option>
+<option value="st_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+<option value="cast_fa">Castellgalí — La Fàbrica</option>
+<option value="man_hos">Manresa — Hospital de Sant Joan de Déu</option>
+<option value="man_vall">Manresa — Plaça Valldaura</option>
+<option value="man_est">Manresa — Estació d'autobusos</option>`;
+const OPTS_BM_DEST = OPTS_BM_ORIG.replace("Selecciona parada d'origen","Selecciona destinació");
+
+let currentDir = 'mb';
+
+function toggleTheme() {
+  const body = document.body;
+  const isLight = body.classList.contains('light');
+  if (isLight) {
+    body.classList.remove('light');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    body.classList.add('light');
+    localStorage.setItem('theme', 'light');
+  }
+  syncThemeBtns();
+}
+
+function syncThemeBtns() {
+  const isLight = document.body.classList.contains('light');
+  const label = isLight ? '🌙 Fosc' : '☀️ Clar';
+  ['theme-btn', 'theme-btn-welcome'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = label;
+  });
+}
+
+// Aplicar tema desat i sincronitzar botons
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+  }
+  // Sincronitzem quan el DOM carrega
+  document.addEventListener('DOMContentLoaded', syncThemeBtns);
+})();
+
+function enterApp(dir) {
+  currentDir = dir;
+  document.getElementById('welcome-screen').style.display = 'none';
+  const appContent = document.getElementById('app-content');
+  appContent.style.display = 'block';
+  appContent.classList.add('visible');
+
+  // Capçalera
+  if (dir === 'mb') {
+    document.getElementById('header-title').textContent = 'Manresa → Barcelona';
+    document.getElementById('header-sub').textContent = 'Monbus E22 · E23';
+    document.getElementById('sel-orig').innerHTML = OPTS_MB_ORIG;
+    document.getElementById('sel-dest').innerHTML = OPTS_MB_DEST;
+  } else {
+    document.getElementById('header-title').textContent = 'Barcelona → Manresa';
+    document.getElementById('header-sub').textContent = 'Monbus E22 · E23';
+    document.getElementById('sel-orig').innerHTML = OPTS_BM_ORIG;
+    document.getElementById('sel-dest').innerHTML = OPTS_BM_DEST;
+  }
+
+  initSelectors();
+  updateSelectColor(document.getElementById('sel-orig'));
+  updateSelectColor(document.getElementById('sel-dest'));
+  document.getElementById('results').innerHTML = '';
+
+  // Sincronitzar text del botó amb el tema actual
+  syncThemeBtns();
+
+  if (!window._appInited) {
+    window._appInited = true;
+    loadVotes();
+    setDay(currentDay);
+  }
+}
+
+function backToWelcome() {
+  const appC = document.getElementById('app-content');
+  appC.style.opacity = '0';
+  appC.style.transform = 'translateX(18px)';
+  setTimeout(() => {
+    appC.style.display = 'none';
+    appC.style.opacity = '';
+    appC.style.transform = '';
+    appC.classList.remove('visible');
+    document.getElementById('welcome-screen').style.display = 'flex';
+    document.getElementById('results').innerHTML = '';
+  }, 200);
+}
+
+loadVotes();
+setDay(currentDay);
+</script>
+</body>
+</html>
