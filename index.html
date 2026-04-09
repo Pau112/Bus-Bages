@@ -4,28 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Bus Bages</title>
-
-  <!-- PWA Meta Tags -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Bus Bages" />
-  <meta name="theme-color" content="#0d0d0d" />
-  <meta name="description" content="Horaris Monbus E22 · E23 Manresa-Barcelona en temps real" />
-
-  <!-- Icona per iPhone (posa la teva icona a la mateixa carpeta) -->
-  <link rel="apple-touch-icon" href="icon.png" />
-  <link rel="apple-touch-icon" sizes="152x152" href="icon.png" />
-  <link rel="apple-touch-icon" sizes="167x167" href="icon.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="icon.png" />
-
-  <!-- Manifest PWA -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- Splash screens iPhone (opcional però millora l'experiència) -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; background: #0d0d0d; display: flex; justify-content: center; padding: 20px 0; min-height: 100vh; transition: background 0.6s ease; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; background: #0d0d0d; display: flex; justify-content: center; padding: max(env(safe-area-inset-top, 20px), 44px) 0 20px; min-height: 100vh; transition: background 0.6s ease; }
     .app { width: 100%; max-width: 390px; background: #0d0d0d; min-height: 100vh; transition: background 0.6s ease; }
 
     /* ── HEADER ── */
@@ -191,6 +172,21 @@
     /* ── NO RESULTS ── */
     .no-results { text-align: center; padding: 28px 16px; color: #444; font-size: 13px; }
     .results-wrap { padding-bottom: 24px; margin-top: 10px; }
+    /* ── Campaneta notificacions ── */
+    .bell-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 4px 6px; border-radius: 8px; transition: transform 0.2s, background 0.2s; display: flex; align-items: center; justify-content: center; position: relative; }
+    .bell-btn:active { transform: scale(0.88); }
+    .bell-btn.active { animation: bellRing 0.5s ease; }
+    .bell-btn .bell-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; background: #378ADD; border-radius: 50%; border: 1.5px solid #0d0d0d; display: none; }
+    .bell-btn.subscribed .bell-dot { display: block; }
+    @keyframes bellRing {
+      0%   { transform: rotate(0deg); }
+      20%  { transform: rotate(-18deg); }
+      40%  { transform: rotate(18deg); }
+      60%  { transform: rotate(-12deg); }
+      80%  { transform: rotate(8deg); }
+      100% { transform: rotate(0deg); }
+    }
+    body.light .bell-btn .bell-dot { border-color: #f5f5f7; }
     @keyframes cardIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     .bus-card { animation: cardIn 0.3s ease both; }
     .bus-card:nth-child(1) { animation-delay: 0ms; }
@@ -277,6 +273,7 @@
     body.light .welcome-line { background: #e0e0e0; }
     body.light .tag-next { background: rgba(55,138,221,0.1); color: #378ADD; border-color: rgba(55,138,221,0.2); }
     body.light .rating-wrap { border-top-color: #eee; }
+    body.light #toast { background: #fff; color: #111; border-color: #e0e0e0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
     body.light .predict-wrap { border-top-color: #eee; }
     body.light .passed-body { border-top-color: #eee; }
     body.light .confirm-overlay { background: rgba(0,0,0,0.3); }
@@ -1123,6 +1120,82 @@ function setDay(d) {
   doSearch();
 }
 
+// ══ SISTEMA DE NOTIFICACIONS ══════════════════════════════════════════
+// Cooldown per evitar spam: max 1 notificació per trip cada 5 minuts
+const notifCooldown = {};
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const perm = await Notification.requestPermission();
+  return perm === 'granted';
+}
+
+function toggleBell(tripId, dep) {
+  const key = 'bell_' + tripId;
+  const isOn = localStorage.getItem(key) === '1';
+
+  if (isOn) {
+    // Desactivar
+    localStorage.removeItem(key);
+    updateBellUI(tripId, false);
+    showToast('🔕 Notificacions desactivades per aquest bus');
+  } else {
+    // Activar - demanar permís
+    requestNotifPermission().then(granted => {
+      if (granted) {
+        localStorage.setItem(key, '1');
+        updateBellUI(tripId, true);
+        showToast('\ud83d\udd14 T\'avisarem si hi ha canvis en el bus de les ' + dep);
+      } else {
+        showToast('⚠️ Has de permetre notificacions als ajustos del mòbil');
+      }
+    });
+  }
+}
+
+function updateBellUI(tripId, active) {
+  document.querySelectorAll('.bell-btn').forEach(btn => {
+    if (btn.closest('[data-trip-check="' + tripId + '"]') ||
+        btn.getAttribute('onclick')?.includes(tripId)) {
+      btn.classList.toggle('subscribed', active);
+      btn.classList.add('active');
+      setTimeout(() => btn.classList.remove('active'), 600);
+    }
+  });
+}
+
+function sendNotif(title, body, tripId) {
+  // Cooldown: no enviar si ja hem enviat una notif per aquest trip fa menys de 5 min
+  const now = Date.now();
+  if (notifCooldown[tripId] && now - notifCooldown[tripId] < 5 * 60 * 1000) return;
+  if (!localStorage.getItem('bell_' + tripId)) return;
+  if (Notification.permission !== 'granted') return;
+  notifCooldown[tripId] = now;
+  new Notification(title, {
+    body: body,
+    icon: 'icon.png',
+    badge: 'icon.png',
+    tag: tripId, // Evita notificacions duplicades (substitueix l'anterior)
+  });
+}
+
+// Toast missatge temporal
+function showToast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#e0e0e0;padding:10px 18px;border-radius:20px;font-size:13px;z-index:9999;border:0.5px solid #2a2a2a;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:opacity 0.3s;white-space:nowrap;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+}
+
 function isFromOtherUser(snapshot) {
   // Retorna true si el canvi ve d'un altre usuari (no de nosaltres)
   // fromCache=false i hasPendingWrites=false = dada confirmada del servidor d'altri
@@ -1154,6 +1227,9 @@ function loadVotes() {
       const myT = globalVotes[tripId + '_time'];
       if (myO) movePill(tripId, 'occ', myO);
       if (myT) movePill(tripId, 'time', myT);
+      // Notificació si el bus va tard o ple
+      if (myT === 'tard') sendNotif('🚌 Bus amb retard', 'El bus de les ' + tripId + ' va amb retard', tripId);
+      if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + tripId + ' va ple', tripId);
     });
   });
 
@@ -1181,17 +1257,32 @@ function loadVotes() {
       const d = change.doc.data();
       if (d.date !== TODAY) { delete userLocations[d.tripId]; changed = true; return; }
       if (Date.now() - d.time < 5 * 60 * 1000) {
+        const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
+        if (isNew) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
   });
 
-  // Confirmacions: actualitzar comptador al DOM sense re-renderitzar
+  // Confirmacions: actualitzar comptador + notificació una sola vegada per trip
+  const notifiedPassed = new Set(); // trips dels quals ja hem notificat que han passat
   db.collection("confirmed").onSnapshot({ includeMetadataChanges: true }, snapshot => {
     if (snapshot.metadata.hasPendingWrites) return;
     const raw = {};
+    snapshot.docChanges().forEach(change => {
+      if (change.type !== 'added') return;
+      const d = change.doc.data();
+      if (d.date !== TODAY) return;
+      // Notificar UNA SOLA VEGADA per trip
+      if (!notifiedPassed.has(d.tripId)) {
+        notifiedPassed.add(d.tripId);
+        const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
+        const dep = btn ? btn.dataset.dep : '';
+        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId);
+      }
+    });
     snapshot.forEach(doc => {
       const d = doc.data();
       if (d.date !== TODAY) return;
@@ -1199,7 +1290,6 @@ function loadVotes() {
       raw[d.tripId] += 1;
     });
     globalConfirmed = raw;
-    // Actualitzar botons "ja ha passat" sense re-renderitzar
     updateAllConfirmed();
   });
 
@@ -1551,8 +1641,13 @@ function renderCard(trip, orig, dest, type) {
     : isNext ? 'bus-card isnext' : 'bus-card';
 
   if (isPassed) {
+    const isSubscribedP = localStorage.getItem('bell_' + trip.id) === '1';
+    const bellBtnP = '<button class="bell-btn ' + (isSubscribedP?'subscribed':'') + '" onclick="toggleBell(\'' + trip.id + '\',\'' + dep + '\')" title="Activar notificacions">🔔<span class="bell-dot"></span></button>';
     return `<div class="${cardClass}">
-      <div class="tag-passed">Bus anterior</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="tag-passed">Bus anterior</div>
+        ${bellBtnP}
+      </div>
       <div class="passed-header" onclick="togglePassed('${trip.id}')">
         <div>
           <div class="card-time" style="font-size:34px;font-weight:800;">${dep}
@@ -1572,8 +1667,16 @@ function renderCard(trip, orig, dest, type) {
     </div>`;
   }
 
+  const isSubscribed = localStorage.getItem('bell_' + trip.id) === '1';
+  const bellBtn = (isNext || isPassed)
+    ? '<button class="bell-btn ' + (isSubscribed?'subscribed':'') + '" onclick="toggleBell(\'' + trip.id + '\',\'' + dep + '\')" title="Activar notificacions">🔔<span class="bell-dot"></span></button>'
+    : '';
+  const tagHtml = isNext ? '<div class="tag-next">Proper bus</div>' : isPassed ? '<div class="tag-passed">Bus anterior</div>' : '<div></div>';
   return `<div class="${cardClass}">
-    ${isNext ? '<div class="tag-next">Proper bus</div>' : ''}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${isNext||isPassed?'4px':'0'};">
+      ${tagHtml}
+      ${bellBtn}
+    </div>
     <div class="card-top">
       <div>
         <div class="card-time">${dep}</div>
@@ -2109,15 +2212,5 @@ setInterval(() => {
   if (changed) doSearch();
 }, 60 * 1000);
 </script>
-  <script>
-    // Registrar Service Worker per a PWA (cache offline)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('SW registrat'))
-          .catch(err => console.log('SW error:', err));
-      });
-    }
-  </script>
 </body>
 </html>
