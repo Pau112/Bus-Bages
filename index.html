@@ -1234,7 +1234,7 @@ function loadVotes() {
         if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + tripId + ' va ple', tripId);
       }
     });
-    votesInitDone = true;
+    if (!votesInitDone) setTimeout(() => { votesInitDone = true; }, 3000);
   });
 
   // Ratings: només re-renderitzar per canvis externs
@@ -1255,6 +1255,8 @@ function loadVotes() {
 
   // Ubicacions: sempre externes (la nostra ja l'actualitzem localment)
   let locInitDone = false;
+  let locReady = false;
+  setTimeout(() => { locReady = true; }, 4000);
   db.collection("locations").onSnapshot(snapshot => {
     let changed = false;
     snapshot.docChanges().forEach(change => {
@@ -1265,7 +1267,7 @@ function loadVotes() {
         const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
-        if (isNew && locInitDone) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
+        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
@@ -1274,31 +1276,35 @@ function loadVotes() {
 
   // Confirmacions: actualitzar comptador + notificació una sola vegada per trip
   const notifiedPassed = new Set();
-  let confirmedInitDone = false; // ignorem el primer snapshot (dades ja existents)
-  db.collection("confirmed").onSnapshot({ includeMetadataChanges: true }, snapshot => {
-    if (snapshot.metadata.hasPendingWrites) return;
-    const raw = {};
-    snapshot.forEach(doc => {
-      const d = doc.data();
-      if (d.date !== TODAY) return;
-      if (!raw[d.tripId]) raw[d.tripId] = 0;
-      raw[d.tripId] += 1;
-    });
-    globalConfirmed = raw;
-    updateAllConfirmed();
-    // Primer snapshot = estat inicial, no notifiquem
-    if (!confirmedInitDone) { confirmedInitDone = true; return; }
-    // A partir del segon snapshot, notifiquem només els nous
-    snapshot.docChanges().forEach(change => {
-      if (change.type !== 'added') return;
-      const d = change.doc.data();
-      if (d.date !== TODAY) return;
-      if (!notifiedPassed.has(d.tripId)) {
+  const existingConfirmedTrips = new Set();
+
+  // Primer llegim l'estat actual amb .get() (una sola vegada, no és listener)
+  db.collection("confirmed").where("date", "==", TODAY).get().then(snap => {
+    snap.forEach(doc => existingConfirmedTrips.add(doc.data().tripId));
+
+    // Ara sí iniciem el listener - els 'added' inicials ja els coneixem
+    db.collection("confirmed").onSnapshot(snapshot => {
+      const raw = {};
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        if (d.date !== TODAY) return;
+        if (!raw[d.tripId]) raw[d.tripId] = 0;
+        raw[d.tripId] += 1;
+      });
+      globalConfirmed = raw;
+      updateAllConfirmed();
+
+      snapshot.docChanges().forEach(change => {
+        if (change.type !== 'added') return;
+        const d = change.doc.data();
+        if (d.date !== TODAY) return;
+        if (existingConfirmedTrips.has(d.tripId)) return; // ja existia, ignorar
+        if (notifiedPassed.has(d.tripId)) return;
         notifiedPassed.add(d.tripId);
         const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
         const dep = btn ? btn.dataset.dep : '';
         sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId);
-      }
+      });
     });
   });
 
