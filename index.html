@@ -1350,6 +1350,17 @@ function updateAllRatings() {
     if (r && r.count > 0) {
       avgWrap.innerHTML = `<div class="rating-avg"><span>${(r.sum/r.count).toFixed(1)}</span> · ${r.count} ${r.count===1?'valoració':'valoracions'}</div>`;
     }
+    // Restaurar les estrelles pròpies des de localStorage
+    const myR = parseInt(localStorage.getItem('rated_' + TODAY + '_' + tripId) || '0', 10);
+    if (myR > 0) {
+      const alreadyRated = true;
+      wrap.querySelectorAll('.star').forEach((s, i) => {
+        s.textContent = i < myR ? '⭐' : '☆';
+        s.classList.toggle('active', i < myR);
+        s.style.cursor = 'default';
+        s.onclick = null;
+      });
+    }
   });
 }
 
@@ -1572,12 +1583,14 @@ function mapHtml(tripId) {
 
 function ratingHtml(tripId) {
   const r = globalRatings[tripId];
-  const myR = myRatings[tripId] || 0;
+  // Recuperar valoració des de localStorage (persisteix entre sessions)
+  const myR = myRatings[tripId] || parseInt(localStorage.getItem('rated_' + TODAY + '_' + tripId) || '0', 10);
+  const alreadyRated = !!localStorage.getItem('rated_' + TODAY + '_' + tripId);
   const avg = r && r.count > 0 ? (r.sum/r.count) : 0;
   return `<div class="rating-wrap" data-rating-id="${tripId}">
     <div class="rating-label">Valoració del servei</div>
     <div class="stars">
-      ${[1,2,3,4,5].map(n => `<div class="star ${myR>=n?'active':''}" onclick="rateTrip('${tripId}',${n})">${myR>=n?'⭐':'☆'}</div>`).join('')}
+      ${[1,2,3,4,5].map(n => `<div class="star ${myR>=n?'active':''}" onclick="${alreadyRated ? '' : 'rateTrip(\'' + tripId + '\',' + n + ')'}" style="${alreadyRated ? 'cursor:default;' : ''}">${myR>=n?'⭐':'☆'}</div>`).join('')}
     </div>
     <div class="rating-avg-wrap">
       ${r && r.count > 0
@@ -1817,7 +1830,13 @@ function initPills() {
 }
 
 function rateTrip(id, stars) {
+  // Si ja has valorat avui aquest bus, no fer res
+  if (localStorage.getItem('rated_' + TODAY + '_' + id)) return;
+
   myRatings[id] = stars;
+  // Guardar a localStorage perquè persisteixi en tornar a obrir la app
+  localStorage.setItem('rated_' + TODAY + '_' + id, String(stars));
+
   // Actualitzar NOMÉS el rating sense re-renderitzar tot (evita que es plegui el passed)
   const wrap = document.querySelector('[data-rating-id="' + id + '"]');
   if (wrap) {
