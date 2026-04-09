@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bus Bages</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif; background: #0d0d0d; display: flex; justify-content: center; padding: 20px 0; min-height: 100vh; transition: background 0.6s ease; }
+    .app { width: 100%; max-width: 390px; background: #0d0d0d; min-height: 100vh; transition: background 0.6s ease; }
+
+    /* ── HEADER ── */
+    .header { background: #1a1a1a; padding: 14px 16px 10px; border: 0.5px solid #2a2a2a; border-radius: 14px; margin: 10px 12px 0; transition: background 0.4s; }
+    .header h1 { font-size: 22px; font-weight: 700; color: #f0f0f0; transition: color 0.4s; }
+    .header-sub { font-size: 14px; color: #666; margin-top: 3px; transition: color 0.4s; }
+
+    /* ── BANNER DIA (simplificat) ── */
+    .day-simple { margin: 10px 12px 0; padding: 10px 14px; border-radius: 10px; background: #1a2e1a; border: 0.5px solid #3B6D11; text-align: center; font-size: 12px; font-weight: 600; color: #fff; letter-spacing: 0.03em; transition: all 0.4s; }
+    body.light .day-simple { background: #EAF3DE; border-color: #97C459; color: #111; }
+
+    /* ── SEARCH BOX ── */
+    .search-box { background: #1a1a1a; margin: 10px 12px 0; border-radius: 12px; border: 0.5px solid #2a2a2a; transition: background 0.4s; position: relative; z-index: 10; }
+    .search-row { display: flex; align-items: center; gap: 10px; padding: 0; cursor: pointer; position: relative; }
+    .search-row:first-child { border-bottom: 0.5px solid #2a2a2a; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-left: 14px; }
+    .dot-o { background: #378ADD; }
+    .dot-d { background: #D4537E; }
+    /* Selector custom */
+    .custom-select { position: relative; flex: 1; }
+    .custom-select-trigger { padding: 14px 14px 14px 8px; font-size: 16px; font-weight: 500; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none; transition: color 0.2s; }
+    .custom-select-trigger.selected { color: #ffffff; font-weight: 600; }
+    .custom-select-trigger svg { flex-shrink: 0; transition: transform 0.25s ease; opacity: 0.4; }
+    .custom-select-trigger.open svg { transform: rotate(180deg); }
+    /* Dropdown panel */
+    .custom-dropdown { position: fixed; left: 12px; right: 12px; background: #1e1e1e; border: 0.5px solid #2a2a2a; border-radius: 12px; z-index: 999; overflow: hidden; max-height: 0; opacity: 0; transform: translateY(-8px); transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, transform 0.25s ease; pointer-events: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .custom-dropdown.open { max-height: 280px; opacity: 1; transform: translateY(0); pointer-events: all; }
+    .custom-dropdown-inner { overflow-y: auto; max-height: 280px; }
+    .custom-option { padding: 13px 16px; font-size: 15px; color: #e0e0e0; cursor: pointer; transition: background 0.15s, color 0.15s; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
+    .custom-option:last-child { border-bottom: none; }
+    .custom-option:hover { background: rgba(55,138,221,0.1); color: #fff; }
+    .custom-option.active { color: #378ADD; background: rgba(55,138,221,0.08); }
+    /* Mode clar */
+    body.light .search-box { background: #fff; border-color: #e0e0e0; }
+    body.light .search-row:first-child { border-bottom-color: #eee; }
+    body.light .custom-select-trigger { color: #111; }
+    body.light .custom-select-trigger.selected { color: #000; font-weight: 600; }
+    body.light .custom-dropdown { background: #fff; border-color: #e0e0e0; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+    body.light .custom-option { color: #111; border-bottom-color: #f0f0f0; }
+    body.light .custom-option:hover { background: rgba(55,138,221,0.08); color: #000; }
+    body.light .custom-option.active { color: #378ADD; background: rgba(55,138,221,0.06); }
+    /* Input ocult per compatibilitat (doSearch el llegeix) */
+    .hidden-select { display: none; }
+
+    /* ── BTN SEARCH ── */
+    .btn-search { width: calc(100% - 24px); margin: 8px 12px 0; background: #378ADD; color: #fff; border: none; border-radius: 10px; padding: 15px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.1s, opacity 0.1s; }
+    .btn-search:active { transform: scale(0.97); opacity: 0.9; }
+
+    /* ── SECTION LABEL ── */
+    .section-label { font-size: 13px; font-weight: 700; color: #e0e0e0; text-transform: uppercase; letter-spacing: 0.08em; padding: 12px 12px 4px; }
+    body.light .section-label { color: #bbb; }
+
+    /* ── BUS CARDS ── */
+    .bus-card { background: #1a1a1a; margin: 0 12px 7px; border-radius: 14px; border: 0.5px solid #2a2a2a; padding: 12px 14px; transition: background 0.4s, border 0.3s; }
+    .bus-card.passed { opacity: 0.5; }
+    .bus-card.passed.confirmed { opacity: 1; border: 1.5px solid #3B6D11; box-shadow: 0 0 0 3px rgba(59,109,17,0.15); }
+    .bus-card.isnext { border: 1.5px solid #2a5f9e; box-shadow: 0 0 0 3px rgba(42,95,158,0.1); }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-time { font-size: 34px; font-weight: 800; color: #ffffff; letter-spacing: -1px; }
+    .card-sub { font-size: 17px; color: #e0e0e0; margin-top: 4px; font-weight: 500; }
+
+    /* ── TAGS ── */
+    .tag-next { display: inline-block; background: rgba(55,138,221,0.15); color: #5fa8e8; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; border: 0.5px solid rgba(55,138,221,0.3); letter-spacing: 0.02em; }
+    .tag-passed { display: inline-block; background: rgba(180,180,180,0.08); color: #777; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; border: 0.5px solid rgba(150,150,150,0.2); letter-spacing: 0.02em; }
+    body.light .tag-passed { background: rgba(0,0,0,0.05); color: #aaa; }
+
+    /* ── BADGES ── */
+    .badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .bg { background: rgba(59,109,17,0.15); color: #7bc857; border: 0.5px solid rgba(59,109,17,0.3); }
+    .ba { background: rgba(200,50,50,0.15); color: #e05555; border: 0.5px solid rgba(200,50,50,0.3); }
+    .br { background: rgba(200,50,50,0.15); color: #e05555; border: 0.5px solid rgba(200,50,50,0.3); }
+    .bx { background: #252525; color: #555; }
+    .bo { background: rgba(217,119,6,0.15); color: #F59E0B; border: 0.5px solid rgba(217,119,6,0.35); }
+    body.light .bo { background: #FEF3C7; color: #D97706; border-color: #F59E0B; }
+    body.light .bg { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    body.light .ba { background: #FCEBEB; color: #A32D2D; border-color: #F09595; }
+    body.light .br { background: #FCEBEB; color: #A32D2D; border-color: #F09595; }
+    body.light .bx { background: #f0f0f0; color: #aaa; }
+
+    /* ── PILL SELECTOR (Ocupació / Puntualitat) ── */
+    .vote-section { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 0.5px solid #2a2a2a; }
+    .vote-label { font-size: 13px; color: #888; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+    body.light .vote-label { color: #999; }
+    .pill-wrap { position: relative; display: flex; border-radius: 10px; background: #252525; border: 0.5px solid #2a2a2a; padding: 3px; overflow: hidden; }
+    .pill-track { position: absolute; top: 3px; bottom: 3px; border-radius: 7px; transition: left 0.3s cubic-bezier(0.34,1.56,0.64,1), width 0.3s cubic-bezier(0.34,1.56,0.64,1), background-color 0.25s ease, border-color 0.25s ease; z-index: 0; pointer-events: none; background: rgba(255,255,255,0.06); border: 0.5px solid transparent; }
+    .pill-opt { flex: 1; position: relative; z-index: 1; padding: 9px 4px; font-size: 14px; font-weight: 500; text-align: center; cursor: pointer; border-radius: 7px; color: #e0e0e0; transition: color 0.2s; user-select: none; }
+    .pill-opt.active { font-weight: 700; }
+    .pill-track[data-color="buit"], .pill-track[data-color="punt"] { background: rgba(59,109,17,0.22); border-color: rgba(59,109,17,0.45); }
+    .pill-track[data-color="mig"] { background: rgba(217,119,6,0.22); border-color: rgba(217,119,6,0.45); }
+    .pill-track[data-color="ple"], .pill-track[data-color="tard"] { background: rgba(200,50,50,0.22); border-color: rgba(200,50,50,0.45); }
+    .pill-opt.active-buit, .pill-opt.active-punt { color: #7bc857; }
+    .pill-opt.active-mig { color: #F59E0B; }
+    .pill-opt.active-tard { color: #e05555; }
+    .pill-opt.active-ple  { color: #e05555; }
+    body.light .pill-wrap { background: #f0f0f0; border-color: #e0e0e0; }
+    body.light .pill-opt { color: #bbb; }
+    body.light .pill-track[data-color="buit"], body.light .pill-track[data-color="punt"] { background: #EAF3DE; border-color: #97C459; }
+    body.light .pill-track[data-color="mig"] { background: #FEF3C7; border-color: #F59E0B; }
+    body.light .pill-track[data-color="ple"], body.light .pill-track[data-color="tard"] { background: #FCEBEB; border-color: #F09595; }
+    body.light .pill-opt.active-buit, body.light .pill-opt.active-punt { color: #3B6D11; }
+    body.light .pill-opt.active-mig { color: #D97706; }
+    body.light .pill-opt.active-tard, body.light .pill-opt.active-ple { color: #A32D2D; }
+
+    /* ── SHARE BTN ── */
+    .share-btn { width: 100%; margin-top: 8px; padding: 11px; border: 0.5px solid #2a2a2a; border-radius: 10px; font-size: 15px; background: #1e1e1e; color: #e0e0e0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+    .share-btn:active { transform: scale(0.98); }
+    .share-btn.on { background: rgba(59,109,17,0.15); color: #7bc857; border-color: rgba(59,109,17,0.4); }
+    body.light .share-btn { background: #f5f5f5; border-color: #ddd; color: #888; }
+    body.light .share-btn.on { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .share-confirm { font-size: 11px; color: #7bc857; margin-top: 5px; text-align: center; padding: 5px; background: rgba(59,109,17,0.1); border-radius: 8px; }
+
+    /* ── BTN PASSAT (canvi: ara és subtil, invita a prémer) ── */
+    .btn-passed { width: 100%; margin-top: 9px; padding: 11px 14px; border: 1px dashed #555; border-radius: 10px; font-size: 15px; font-weight: 500; background: transparent; color: #e0e0e0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; letter-spacing: 0.01em; }
+    .btn-passed:hover { border-color: #666; color: #aaa; background: rgba(255,255,255,0.03); }
+    .btn-passed:active { transform: scale(0.98); }
+    .btn-passed.done { background: rgba(59,109,17,0.12); color: #7bc857; border: 1px solid rgba(59,109,17,0.3); cursor: default; }
+    body.light .btn-passed { border-color: #ccc; color: #aaa; }
+    body.light .btn-passed.done { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+
+    /* ── CONFIRM MODAL ── */
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 24px; backdrop-filter: blur(4px); }
+    .confirm-box { background: #1a1a1a; border-radius: 18px; padding: 24px; width: 100%; max-width: 320px; text-align: center; border: 0.5px solid #2a2a2a; }
+    .confirm-box h3 { font-size: 17px; font-weight: 700; color: #f0f0f0; margin-bottom: 8px; }
+    .confirm-box p { font-size: 13px; color: #666; margin-bottom: 20px; line-height: 1.6; }
+    .confirm-btns { display: flex; gap: 8px; }
+    .confirm-btns button { flex: 1; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: 0.5px solid #2a2a2a; transition: all 0.15s; }
+    .confirm-btns button:active { transform: scale(0.97); }
+    .confirm-yes { background: rgba(59,109,17,0.2); color: #7bc857; border-color: rgba(59,109,17,0.4) !important; }
+    .confirm-no { background: #252525; color: #666; }
+    body.light .confirm-box { background: #fff; border-color: #e0e0e0; }
+    body.light .confirm-box h3 { color: #111; }
+    body.light .confirm-box p { color: #888; }
+    body.light .confirm-no { background: #f5f5f5; color: #888; }
+    body.light .confirm-yes { background: #EAF3DE; color: #3B6D11; }
+
+    /* ── RATING (nou disseny) ── */
+    .rating-wrap { margin-top: 10px; padding-top: 10px; border-top: 0.5px solid #2a2a2a; }
+    .rating-label { font-size: 13px; color: #e0e0e0; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; margin-bottom: 8px; }
+    body.light .rating-label { color: #999; }
+    .stars { display: flex; gap: 5px; align-items: center; }
+    .star { flex: 1; height: 36px; border-radius: 8px; border: 0.5px solid #2a2a2a; background: #252525; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; transition: all 0.15s cubic-bezier(.4,0,.2,1); }
+    .star:active { transform: scale(0.9); }
+    .star.active { background: rgba(239,159,39,0.15); border-color: rgba(239,159,39,0.4); }
+    .star.active::after { content: ""; }
+    .rating-avg-wrap { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
+    .rating-avg { font-size: 14px; color: #e0e0e0; }
+    .rating-avg span { font-weight: 700; color: #e8a84f; font-size: 13px; }
+    body.light .star { background: #f5f5f5; border-color: #e0e0e0; }
+    body.light .star.active { background: #FFF8E6; border-color: #EF9F27; }
+    body.light .rating-avg { color: #999; }
+
+    /* ── PREDICT BADGES ── */
+    .predict-wrap { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 0.5px solid #2a2a2a; }
+    .predict-badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+    .predict-badge.pb-tard { background: rgba(200,50,50,0.12); color: #e05555; border: 0.5px solid rgba(200,50,50,0.25); }
+    .predict-badge.pb-ple  { background: rgba(200,50,50,0.12); color: #e05555; border: 0.5px solid rgba(200,50,50,0.25); }
+    .predict-badge.pb-mig  { background: rgba(217,119,6,0.12); color: #F59E0B; border: 0.5px solid rgba(217,119,6,0.3); }
+    .predict-badge.pb-buit { background: rgba(59,109,17,0.12); color: #7bc857; border: 0.5px solid rgba(59,109,17,0.25); }
+    .predict-label { font-size: 13px; color: #e0e0e0; margin-top: 4px; width: 100%; }
+    body.light .predict-label { color: #999; }
+
+    /* ── NO RESULTS ── */
+    .no-results { text-align: center; padding: 28px 16px; color: #444; font-size: 13px; }
+    .results-wrap { padding-bottom: 24px; margin-top: 10px; }
+    @keyframes cardIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .bus-card { animation: cardIn 0.3s ease both; }
+    .bus-card:nth-child(1) { animation-delay: 0ms; }
+    .bus-card:nth-child(2) { animation-delay: 60ms; }
+    .bus-card:nth-child(3) { animation-delay: 120ms; }
+    .bus-card:nth-child(4) { animation-delay: 180ms; }
+    .bus-card:nth-child(5) { animation-delay: 240ms; }
+    .section-label { animation: cardIn 0.25s ease both; }
+    .ruta-error { background: rgba(200,50,50,0.1); border: 0.5px solid rgba(200,50,50,0.3); border-radius: 10px; margin: 12px; padding: 12px 14px; font-size: 13px; color: #e05555; text-align: center; }
+
+    /* ── PASSED CARD EXPAND ── */
+    .passed-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .passed-chevron { font-size: 10px; color: #444; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+    .passed-chevron.open { transform: rotate(180deg); }
+    .passed-body { height: 0; overflow: hidden; transition: height 0.38s cubic-bezier(0.4,0,0.2,1); }
+    .passed-body.open { height: auto; }
+
+    /* ── WELCOME SCREEN ── */
+    .welcome-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px 24px; gap: 14px; position: relative; transition: opacity 0.35s ease; }
+    .welcome-logo { margin-bottom: 0; }
+    @keyframes busFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .welcome-title { font-size: 36px; font-weight: 800; color: #f0f0f0; text-align: center; line-height: 1.1; letter-spacing: -1px; transition: color 0.4s; }
+    .welcome-sub { font-size: 13px; color: #444; text-align: center; margin-bottom: 8px; transition: color 0.4s; }
+    .welcome-line { width: 100%; height: 0.5px; background: #2a2a2a; transition: background 0.4s; }
+    .welcome-btn { width: 100%; padding: 17px 20px; border-radius: 14px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; transition: transform 0.15s ease, opacity 0.15s; }
+    .welcome-btn:active { transform: scale(0.97); opacity: 0.9; }
+    .welcome-btn-mb { background: #242424; border: 0.5px solid #333; }
+    .welcome-btn-bm { background: #2a2a2a; border: 0.5px solid #333; }
+    .welcome-btn-icon { font-size: 26px; }
+    .welcome-btn-text { flex: 1; }
+    .welcome-btn-title { font-size: 15px; font-weight: 700; }
+    .welcome-btn-mb .welcome-btn-title { color: #e8e8e8; }
+    .welcome-btn-bm .welcome-btn-title { color: #e0e0e0; }
+    .welcome-btn-desc { font-size: 12px; margin-top: 2px; }
+    .welcome-btn-mb .welcome-btn-desc { color: #666; }
+    .welcome-btn-bm .welcome-btn-desc { color: #555; }
+    .welcome-btn-arrow { display: none; }
+
+    /* ── APP CONTENT AMAGAT ── */
+    .app-content { display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .app-content.visible { opacity: 1; }
+
+    /* ── THEME TOGGLE (sol/lluna) ── */
+    .theme-toggle { background: none; border: none; cursor: pointer; font-size: 18px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s; position: relative; overflow: hidden; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.05); }
+    .theme-icon { display: block; transition: transform 0.4s cubic-bezier(.4,0,.2,1), opacity 0.3s; }
+    .theme-icon.hide { transform: translateY(30px); opacity: 0; }
+
+    /* ── ANIMACIÓ TRANSICIONS ── */
+    @keyframes slideDown { from{transform:translateY(-100%);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .welcome-screen { animation: fadeIn 0.4s ease; }
+
+    /* ── MODE CLAR ── */
+    body.light { background: #f5f5f7; }
+    body.light .app { background: #f5f5f7; }
+    body.light .header { background: #fff; border-color: #e0e0e0; }
+    body.light .header h1 { color: #111; }
+    body.light .header-sub { color: #888; }
+    body.light .search-box { background: #fff; border-color: #e0e0e0; }
+    body.light .search-row:first-child { border-bottom-color: #eee; }
+    body.light .bus-card { background: #fff; border-color: #e0e0e0; }
+    body.light .bus-card.isnext { border-color: #378ADD; }
+    body.light .card-time { color: #000 !important; }
+    body.light .card-sub { color: #333 !important; }
+    body.light .vote-label { color: #333 !important; }
+    body.light .pill-opt { color: #333 !important; }
+    body.light .share-btn { color: #333 !important; background: #f5f5f5; }
+    body.light .btn-passed { color: #333 !important; }
+    body.light .rating-label { color: #333 !important; }
+    body.light .rating-avg { color: #333 !important; }
+    body.light .predict-label { color: #333 !important; }
+    body.light .section-label { color: #555 !important; }
+    body.light .tag-passed { color: #666; }
+    body.light .btn-passed:hover { color: #111 !important; }
+    body.light .vote-section { border-top-color: #eee; }
+    body.light .share-confirm { background: #EAF3DE; color: #3B6D11; }
+    body.light .no-results { color: #999; }
+    body.light .welcome-btn-mb, body.light .welcome-btn-bm { background: #f0f0f0; border-color: #e0e0e0; }
+    body.light .welcome-btn-mb .welcome-btn-title, body.light .welcome-btn-bm .welcome-btn-title { color: #111; }
+    body.light .welcome-btn-mb .welcome-btn-desc, body.light .welcome-btn-bm .welcome-btn-desc { color: #888; }
+    body.light .welcome-title { color: #111; }
+    body.light .welcome-sub { color: #aaa; }
+    body.light .welcome-line { background: #e0e0e0; }
+    body.light .tag-next { background: rgba(55,138,221,0.1); color: #378ADD; border-color: rgba(55,138,221,0.2); }
+    body.light .rating-wrap { border-top-color: #eee; }
+    body.light .predict-wrap { border-top-color: #eee; }
+    body.light .passed-body { border-top-color: #eee; }
+    body.light .confirm-overlay { background: rgba(0,0,0,0.3); }
+    body.light .theme-toggle:hover { background: rgba(0,0,0,0.05); }
+
+    /* ── DS BTN (per compatibilitat) ── */
+    .ds-btn { display: inline-block; padding: 5px 14px; border: 0.5px solid #2a2a2a; border-radius: 20px; font-size: 11px; background: #1a1a1a; color: #555; cursor: default; }
+    .ds-btn.active-f { background: rgba(59,109,17,0.12); color: #7bc857; border-color: rgba(59,109,17,0.3); }
+    body.light .ds-btn { background: #f0f0f0; border-color: #ddd; color: #aaa; }
+    body.light .ds-btn.active-f { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
+    .votes-count { font-size: 11px; color: #444; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ PANTALLA D'INICI ═══ -->
+  <div class="welcome-screen" id="welcome-screen">
+    <!-- Botó tema a dalt a la dreta -->
+    <div style="position:absolute;top:20px;right:20px;">
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn-welcome" title="Canviar tema">
+        <span class="theme-icon" id="theme-icon-welcome">☀️</span>
+      </button>
+    </div>
+
+    <div class="welcome-logo">
+      <span style="font-size:100px;line-height:1;display:block;filter:drop-shadow(0 12px 32px rgba(55,138,221,0.4));animation:busFloat 3s ease-in-out infinite;">🚌</span>
+    </div>
+    <div class="welcome-title">Bus Bages</div>
+    <div class="welcome-sub">Monbus E22 · E23 · Temps real</div>
+    <div class="welcome-line"></div>
+    <button class="welcome-btn welcome-btn-mb" onclick="enterApp('mb')">
+      <div class="welcome-btn-icon">🏙️</div>
+      <div class="welcome-btn-text">
+        <div class="welcome-btn-title">Manresa → Barcelona</div>
+        <div class="welcome-btn-desc">Horaris d'anada</div>
+      </div>
+    </button>
+    <button class="welcome-btn welcome-btn-bm" onclick="enterApp('bm')">
+      <div class="welcome-btn-icon">🏡</div>
+      <div class="welcome-btn-text">
+        <div class="welcome-btn-title">Barcelona → Manresa</div>
+        <div class="welcome-btn-desc">Horaris de tornada</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- ═══ APP PRINCIPAL (amagada fins que s'esculli) ═══ -->
+  <div class="app-content" id="app-content">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="backToWelcome()" style="background:none;border:none;cursor:pointer;font-size:24px;color:#888;padding:0;line-height:1;">‹</button>
+        <div style="flex:1;">
+          <h1 id="header-title">Bus Bages</h1>
+          <div class="header-sub" id="header-sub">Monbus E22 · E23</div>
+        </div>
+        <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Canviar tema">
+          <span class="theme-icon" id="theme-icon">☀️</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="day-simple">Dilluns a divendres <span style="opacity:0.6;">(excepte agost)</span></div>
+
+  <!-- Selectors - les opcions es carreguen per JS segons la direcció -->
+  <!-- Selects ocults per compatibilitat amb doSearch() -->
+  <select id="sel-orig" class="hidden-select"></select>
+  <select id="sel-dest" class="hidden-select"></select>
+
+  <div class="search-box" id="search-box">
+    <div class="search-row">
+      <div class="dot dot-o"></div>
+      <div class="custom-select" id="cs-orig">
+        <div class="custom-select-trigger" id="cs-orig-trigger" onclick="toggleDropdown('orig')">
+          <span id="cs-orig-label">Selecciona parada d'origen</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="custom-dropdown" id="cs-orig-dropdown">
+          <div class="custom-dropdown-inner" id="cs-orig-inner"></div>
+        </div>
+      </div>
+    </div>
+    <div class="search-row">
+      <div class="dot dot-d"></div>
+      <div class="custom-select" id="cs-dest">
+        <div class="custom-select-trigger" id="cs-dest-trigger" onclick="toggleDropdown('dest')">
+          <span id="cs-dest-label">Selecciona destinació</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="custom-dropdown" id="cs-dest-dropdown">
+          <div class="custom-dropdown-inner" id="cs-dest-inner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-search" onclick="doSearch()">Buscar horaris</button>
+
+  <div id="results" class="results-wrap"></div>
+  </div><!-- fi app-content -->
+
+  <!-- Footer sempre visible, dins del .app -->
+  <div style="padding:20px 16px 32px;text-align:center;border-top:0.5px solid #2a2a2a;margin-top:8px;">
+    <p style="font-size:11px;color:#555;line-height:1.8;">
+      Informe d'Errors<br>
+      <span style="color:#666;">lintepux&#64;gmail&#46;com</span>
+    </p>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyD0G3NS5Hofp9DnZRJKgVJ-Oriog47P0c4",
+  authDomain: "bus-bages-481b5.firebaseapp.com",
+  projectId: "bus-bages-481b5",
+  storageBucket: "bus-bages-481b5.appspot.com",
+  messagingSenderId: "1043250771775",
+  appId: "1:1043250771775:web:42990cc3c56bb55b8b058a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
+    const userLocations = {};
+    let globalVotes = {};
+    let globalRatings = {};
+    let globalHistory = {}; // { tripId: { occ: {ple:N, mig:N, buit:N}, time: {tard:N, punt:N}, days:N } }
+    let myRatings = {};
+    let globalConfirmed = {};
+    const sessionId = Math.random().toString(36).slice(2);
+const T = {
+  feiner: [
+    {id:'f1',line:'E22',times:{
+  manresa_est:'5:30',manresa_val:'5:37',
+  bcn_uni:'6:35',bcn_palau:'6:37',bcn_mc:'6:39',
+  bcn_macia:'6:42',bcn_munt:'6:45',bcn_gran:'6:50'
+}},
+
+{id:'f2',line:'E23',times:{
+  olesa_clos:'6:00',olesa_cat:'6:02',
+  bcn_uni:'6:36',bcn_palau:'6:38',bcn_mc:'6:40'
+}},
+
+{id:'f3',line:'E22',times:{
+  manresa_est:'5:40',manresa_val:'5:47',
+  castellgali:'5:58',st_vicenc_pi:'6:02',
+  monistrol_alv:'6:13',monistrol_gom:'6:15',
+  olesa_clos:'6:25',olesa_cat:'6:27',
+  bcn_uni:'6:55',bcn_palau:'6:57',bcn_mc:'6:59',
+  bcn_macia:'7:02',bcn_munt:'7:05',bcn_gran:'7:10'
+}},
+
+{id:'f4',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  bcn_uni:'7:06',bcn_palau:'7:08',bcn_mc:'7:10'
+}},
+
+{id:'f5',line:'E23',times:{
+  monistrol_alv:'6:00',monistrol_gom:'6:02',
+  olesa_clos:'6:12',olesa_cat:'6:14',
+  bcn_uni:'6:51',bcn_palau:'6:53',bcn_mc:'6:55'
+}},
+
+{id:'f6',line:'E23',times:{
+  olesa_clos:'6:30',olesa_cat:'6:32',
+  bcn_uni:'7:21',bcn_palau:'7:23',bcn_mc:'7:25'
+}},
+
+{id:'f7',line:'E22',times:{
+  manresa_est:'6:00',manresa_val:'6:07',
+  castellgali:'6:18',st_vicenc_pi:'6:22',
+  monistrol_alv:'6:33',monistrol_gom:'6:35',
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:15',bcn_palau:'7:17',bcn_mc:'7:19',
+  bcn_macia:'7:22',bcn_munt:'7:25',bcn_gran:'7:30'
+}},
+
+{id:'f8',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29',
+  bcn_macia:'7:32',bcn_munt:'7:35',bcn_gran:'7:40'
+}},
+
+{id:'f9',line:'E22',times:{
+  manresa_est:'6:15',manresa_val:'6:22',
+  bcn_uni:'7:25',bcn_palau:'7:27',bcn_mc:'7:29'
+}},
+
+{id:'f10',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:45',bcn_palau:'7:47',bcn_mc:'7:49',
+  bcn_macia:'7:52',bcn_munt:'7:55',bcn_gran:'8:00'
+}},
+
+{id:'f11',line:'E22',times:{
+  manresa_est:'6:30',manresa_val:'6:37',
+  bcn_uni:'7:51',bcn_palau:'7:53',bcn_mc:'7:55'
+}},
+
+{id:'f12',line:'E22',times:{
+  manresa_est:'6:40',manresa_val:'6:47',
+  bcn_uni:'7:41',bcn_palau:'7:43',bcn_mc:'7:45'
+}},
+
+{id:'f13',line:'E23',times:{
+  olesa_clos:'6:45',olesa_cat:'6:47',
+  bcn_uni:'7:36',bcn_palau:'7:38',bcn_mc:'7:40'
+}},
+
+{id:'f14',line:'E23',times:{
+  monistrol_alv:'6:50',monistrol_gom:'6:52',
+  olesa_clos:'7:02',olesa_cat:'7:04',
+  bcn_uni:'7:56',bcn_palau:'7:58',bcn_mc:'8:00'
+}},
+
+{id:'f15',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:05',bcn_palau:'8:07',bcn_mc:'8:09',
+  bcn_macia:'8:12',bcn_munt:'8:15',bcn_gran:'8:20'
+}},
+
+{id:'f16',line:'E22',times:{
+  manresa_est:'6:50',manresa_val:'6:57',
+  bcn_uni:'8:01',bcn_palau:'8:03',bcn_mc:'8:05'
+}},
+
+{id:'f17',line:'E22',times:{
+  manresa_est:'7:00',manresa_val:'7:07',
+  bcn_uni:'8:35',bcn_palau:'8:37',bcn_mc:'8:39',
+  bcn_macia:'8:42',bcn_munt:'8:45',bcn_gran:'8:50'
+}},
+
+{id:'f18',line:'E22',times:{
+  manresa_est:'7:15',manresa_val:'7:22',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f19',line:'E23',times:{
+  monistrol_alv:'7:15',monistrol_gom:'7:17',
+  olesa_clos:'7:27',olesa_cat:'7:29',
+  bcn_uni:'8:21',bcn_palau:'8:23',bcn_mc:'8:25'
+}},
+
+{id:'f20',line:'E23',times:{
+  monistrol_alv:'7:20',monistrol_gom:'7:22',
+  olesa_clos:'7:32',olesa_cat:'7:34',
+  bcn_uni:'8:30',bcn_palau:'8:32',bcn_mc:'8:34',
+  bcn_macia:'8:37',bcn_munt:'8:40',bcn_gran:'8:45'
+}},
+
+{id:'f21',line:'E23',times:{
+  olesa_clos:'7:45',olesa_cat:'7:47',
+  bcn_uni:'8:36',bcn_palau:'8:38',bcn_mc:'8:40'
+}},
+
+{id:'f22',line:'E22',times:{
+  manresa_est:'7:20',manresa_val:'7:27',
+  castellgali:'7:38',st_vicenc_pi:'7:42',
+  monistrol_alv:'7:53',monistrol_gom:'7:55',
+  olesa_clos:'8:05',olesa_cat:'8:07',
+  bcn_uni:'9:15',bcn_palau:'9:17',bcn_mc:'9:19',
+  bcn_macia:'9:22',bcn_munt:'9:25',bcn_gran:'9:30'
+}},
+
+{id:'f23',line:'E22',times:{
+  manresa_est:'7:30',manresa_val:'7:37',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f24',line:'E22',times:{
+  manresa_est:'7:45',manresa_val:'7:52',
+  bcn_uni:'9:10',bcn_palau:'9:12',bcn_mc:'9:14',
+  bcn_macia:'9:17',bcn_munt:'9:20',bcn_gran:'9:25'
+}},
+
+{id:'f25',line:'E23',times:{
+  monistrol_alv:'7:50',monistrol_gom:'7:52',
+  olesa_clos:'8:02',olesa_cat:'8:04',
+  bcn_uni:'8:50',bcn_palau:'8:52',bcn_mc:'8:54',
+  bcn_macia:'8:57',bcn_munt:'9:00',bcn_gran:'9:05'
+}},
+
+{id:'f26',line:'E23',times:{
+  olesa_clos:'8:15',olesa_cat:'8:17',
+  bcn_uni:'9:06',bcn_palau:'9:08',bcn_mc:'9:10'
+}},
+
+{id:'f27',line:'E22',times:{
+  manresa_est:'8:00',manresa_val:'8:07',
+  manresa_hos:'8:15',
+  bcn_uni:'9:20',bcn_palau:'9:22',bcn_mc:'9:24',
+  bcn_macia:'9:27',bcn_munt:'9:30',bcn_gran:'9:35'
+}},
+
+{id:'f28',line:'E22',times:{
+  manresa_est:'8:15',manresa_val:'8:22',
+  bcn_uni:'9:25',bcn_palau:'9:27',bcn_mc:'9:29',
+  bcn_macia:'9:32',bcn_munt:'9:35',bcn_gran:'9:40'
+}},
+
+{id:'f29',line:'E22',times:{
+  manresa_est:'8:30',manresa_val:'8:37',
+  bcn_uni:'9:45',bcn_palau:'9:47',bcn_mc:'9:49',
+  bcn_macia:'9:52',bcn_munt:'9:55',bcn_gran:'10:00'
+}},
+
+{id:'f30',line:'E23',times:{
+  olesa_clos:'8:45',olesa_cat:'8:47',
+  bcn_uni:'9:36',bcn_palau:'9:38',bcn_mc:'9:40'
+}},
+
+{id:'f31',line:'E22',times:{
+  manresa_est:'8:45',manresa_val:'8:52',
+  bcn_uni:'10:00',bcn_palau:'10:02',bcn_mc:'10:04',
+  bcn_macia:'10:07',bcn_munt:'10:10',bcn_gran:'10:15'
+}},
+
+{id:'f32',line:'E23',times:{
+  monistrol_alv:'9:00',monistrol_gom:'9:02',
+  olesa_clos:'9:12',olesa_cat:'9:14',
+  bcn_uni:'9:51',bcn_palau:'9:53',bcn_mc:'9:55'
+}},
+
+{id:'f33',line:'E22',times:{
+  manresa_est:'9:00',manresa_val:'9:07',
+  bcn_uni:'10:06',bcn_palau:'10:08',bcn_mc:'10:10'
+}},
+
+{id:'f34',line:'E22',times:{
+  manresa_est:'9:15',manresa_val:'9:22',
+  castellgali:'9:33',st_vicenc_pi:'9:37',
+  monistrol_alv:'9:48',monistrol_gom:'9:50',
+  olesa_clos:'10:00',olesa_cat:'10:02',
+  bcn_uni:'10:30',bcn_palau:'10:32',bcn_mc:'10:34',
+  bcn_macia:'10:37',bcn_munt:'10:40',bcn_gran:'10:45'
+}},
+
+{id:'f35',line:'E22',times:{
+  manresa_est:'9:30',manresa_val:'9:37',
+  bcn_uni:'10:35',bcn_palau:'10:37',bcn_mc:'10:39',
+  bcn_macia:'10:42',bcn_munt:'10:45',bcn_gran:'10:50'
+}},
+
+{id:'f36',line:'E23',times:{
+  monistrol_alv:'9:45',monistrol_gom:'9:47',
+  olesa_clos:'9:57',olesa_cat:'9:59',
+  bcn_uni:'10:36',bcn_palau:'10:38',bcn_mc:'10:40'
+}},
+
+{id:'f37',line:'E22',times:{
+  manresa_est:'10:00',manresa_val:'10:07',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f38',line:'E23',times:{
+  olesa_clos:'10:25',olesa_cat:'10:27',
+  bcn_uni:'11:05',bcn_palau:'11:07',bcn_mc:'11:09',
+  bcn_macia:'11:12',bcn_munt:'11:15',bcn_gran:'11:20'
+}},
+
+{id:'f39',line:'E22',times:{
+  manresa_est:'10:30',manresa_val:'10:37',
+  bcn_uni:'11:36',bcn_palau:'11:38',bcn_mc:'11:40'
+}},
+
+{id:'f40',line:'E23',times:{
+  monistrol_alv:'11:00',monistrol_gom:'11:02',
+  olesa_clos:'11:12',olesa_cat:'11:14',
+  bcn_uni:'11:55',bcn_palau:'11:57',bcn_mc:'11:59',
+  bcn_macia:'12:02',bcn_munt:'12:05',bcn_gran:'12:10'
+}},
+
+{id:'f41',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  bcn_uni:'12:05',bcn_palau:'12:07',bcn_mc:'12:09',
+  bcn_macia:'12:12',bcn_munt:'12:15',bcn_gran:'12:20'
+}},
+
+{id:'f42',line:'E22',times:{
+  manresa_est:'11:00',manresa_val:'11:07',
+  castellgali:'11:18',st_vicenc_pi:'11:22',
+  monistrol_alv:'11:33',monistrol_gom:'11:35',
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:30',bcn_palau:'12:32',bcn_mc:'12:34',
+  bcn_macia:'12:37',bcn_munt:'12:40',bcn_gran:'12:45'
+}},
+
+{id:'f43',line:'E22',times:{
+  manresa_est:'11:30',manresa_val:'11:37',
+  bcn_uni:'12:35',bcn_palau:'12:37',bcn_mc:'12:39',
+  bcn_macia:'12:42',bcn_munt:'12:45',bcn_gran:'12:50'
+}},
+
+{id:'f44',line:'E23',times:{
+  olesa_clos:'11:45',olesa_cat:'11:47',
+  bcn_uni:'12:26',bcn_palau:'12:28',bcn_mc:'12:30'
+}},
+
+{id:'f45',line:'E22',times:{
+  manresa_est:'12:00',manresa_val:'12:07',
+  bcn_uni:'13:06',bcn_palau:'13:08',bcn_mc:'13:10'
+}},
+
+{id:'f46',line:'E23',times:{
+  monistrol_alv:'12:25',monistrol_gom:'12:27',
+  olesa_clos:'12:37',olesa_cat:'12:39',
+  bcn_uni:'13:16',bcn_palau:'13:18',bcn_mc:'13:20'
+}},
+
+{id:'f47',line:'E22',times:{
+  manresa_est:'12:30',manresa_val:'12:37',
+  bcn_uni:'13:35',bcn_palau:'13:37',bcn_mc:'13:39',
+  bcn_macia:'13:42',bcn_munt:'13:45',bcn_gran:'13:50'
+}},
+
+{id:'f48',line:'E23',times:{
+  olesa_clos:'13:00',olesa_cat:'13:02',
+  bcn_uni:'13:41',bcn_palau:'13:43',bcn_mc:'13:45'
+}},
+
+{id:'f49',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f50',line:'E22',times:{
+  manresa_est:'13:00',manresa_val:'13:07',
+  castellgali:'13:18',st_vicenc_pi:'13:22',
+  monistrol_alv:'13:33',monistrol_gom:'13:35',
+  olesa_clos:'13:45',olesa_cat:'13:47',
+  bcn_uni:'14:30',bcn_palau:'14:32',bcn_mc:'14:34',
+  bcn_macia:'14:37',bcn_munt:'14:40',bcn_gran:'14:45'
+}},
+
+{id:'f51',line:'E22',times:{
+  manresa_est:'13:30',manresa_val:'13:37',
+  bcn_uni:'14:36',bcn_palau:'14:38',bcn_mc:'14:40'
+}},
+
+{id:'f52',line:'E22',times:{
+  manresa_est:'14:00',manresa_val:'14:07',
+  bcn_uni:'15:05',bcn_palau:'15:07',bcn_mc:'15:09',
+  bcn_macia:'15:12',bcn_munt:'15:15',bcn_gran:'15:20'
+}},
+
+{id:'f53',line:'E23',times:{
+  olesa_clos:'14:00',olesa_cat:'14:02',
+  bcn_uni:'14:40',bcn_palau:'14:42',bcn_mc:'14:44',
+  bcn_macia:'14:47',bcn_munt:'14:50',bcn_gran:'14:55'
+}},
+
+{id:'f54',line:'E22',times:{
+  manresa_est:'14:30',manresa_val:'14:37',
+  bcn_uni:'15:36',bcn_palau:'15:38',bcn_mc:'15:40'
+}},
+
+{id:'f55',line:'E23',times:{
+  monistrol_alv:'14:40',monistrol_gom:'14:42',
+  olesa_clos:'14:52',olesa_cat:'14:54',
+  bcn_uni:'15:31',bcn_palau:'15:33',bcn_mc:'15:35'
+}},
+
+{id:'f56',line:'E22',times:{
+  manresa_est:'14:50',manresa_val:'14:57',
+  castellgali:'15:08',st_vicenc_pi:'15:12',
+  monistrol_alv:'15:23',monistrol_gom:'15:25',
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:20',bcn_palau:'16:22',bcn_mc:'16:24',
+  bcn_macia:'16:27',bcn_munt:'16:30',bcn_gran:'16:35'
+}},
+
+{id:'f57',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f58',line:'E22',times:{
+  manresa_est:'15:00',manresa_val:'15:07',
+  manresa_hos:'15:15',
+  bcn_uni:'16:06',bcn_palau:'16:08',bcn_mc:'16:10'
+}},
+
+{id:'f59',line:'E22',times:{
+  manresa_est:'15:30',manresa_val:'15:37',
+  bcn_uni:'16:35',bcn_palau:'16:37',bcn_mc:'16:39',
+  bcn_macia:'16:42',bcn_munt:'16:45',bcn_gran:'16:50'
+}},
+
+{id:'f60',line:'E23',times:{
+  olesa_clos:'15:35',olesa_cat:'15:37',
+  bcn_uni:'16:16',bcn_palau:'16:18',bcn_mc:'16:20'
+}},
+
+{id:'f61',line:'E22',times:{
+  manresa_est:'16:00',manresa_val:'16:07',
+  bcn_uni:'17:06',bcn_palau:'17:08',bcn_mc:'17:10'
+}},
+
+{id:'f62',line:'E23',times:{
+  monistrol_alv:'16:00',monistrol_gom:'16:02',
+  olesa_clos:'16:12',olesa_cat:'16:14',
+  bcn_uni:'16:51',bcn_palau:'16:53',bcn_mc:'16:55'
+}},
+
+{id:'f63',line:'E23',times:{
+  olesa_clos:'16:30',olesa_cat:'16:32',
+  bcn_uni:'17:10',bcn_palau:'17:12',bcn_mc:'17:14',
+  bcn_macia:'17:17',bcn_munt:'17:20',bcn_gran:'17:25'
+}},
+
+{id:'f64',line:'E23',times:{
+  monistrol_alv:'16:30',monistrol_gom:'16:32',
+  olesa_clos:'16:42',olesa_cat:'16:44',
+  bcn_uni:'17:25',bcn_palau:'17:27',bcn_mc:'17:29',
+  bcn_macia:'17:32',bcn_munt:'17:35',bcn_gran:'17:40'
+}},
+
+{id:'f65',line:'E23',times:{
+  olesa_clos:'17:00',olesa_cat:'17:02',
+  bcn_uni:'17:36',bcn_palau:'17:38',bcn_mc:'17:40'
+}},
+
+{id:'f66',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f67',line:'E22',times:{
+  manresa_est:'16:20',manresa_val:'16:27',
+  castellgali:'16:38',st_vicenc_pi:'16:42',
+  monistrol_alv:'16:53',monistrol_gom:'16:55',
+  olesa_clos:'17:05',olesa_cat:'17:07',
+  bcn_uni:'17:50',bcn_palau:'17:52',bcn_mc:'17:54',
+  bcn_macia:'17:57',bcn_munt:'18:00',bcn_gran:'18:05'
+}},
+
+{id:'f68',line:'E22',times:{
+  manresa_est:'16:30',manresa_val:'16:37',
+  bcn_uni:'17:40',bcn_palau:'17:42',bcn_mc:'17:44',
+  bcn_macia:'17:47',bcn_munt:'17:50',bcn_gran:'17:55'
+}},
+
+{id:'f69',line:'E22',times:{
+  manresa_est:'17:00',manresa_val:'17:07',
+  bcn_uni:'18:06',bcn_palau:'18:08',bcn_mc:'18:10'
+}},
+
+{id:'f70',line:'E23',times:{
+  monistrol_alv:'17:00',monistrol_gom:'17:02',
+  olesa_clos:'17:12',olesa_cat:'17:14',
+  bcn_uni:'17:51',bcn_palau:'17:53',bcn_mc:'17:55'
+}},
+
+{id:'f71',line:'E23',times:{
+  monistrol_alv:'17:15',monistrol_gom:'17:17',
+  olesa_clos:'17:27',olesa_cat:'17:29',
+  bcn_uni:'17:56',bcn_palau:'17:58',bcn_mc:'18:00'
+}},
+
+{id:'f72',line:'E22',times:{
+  manresa_est:'17:30',manresa_val:'17:37',
+  bcn_uni:'18:40',bcn_palau:'18:42',bcn_mc:'18:44',
+  bcn_macia:'18:47',bcn_munt:'18:50',bcn_gran:'18:55'
+}},
+
+{id:'f73',line:'E23',times:{
+  olesa_clos:'17:50',olesa_cat:'17:52',
+  bcn_uni:'18:31',bcn_palau:'18:33',bcn_mc:'18:35'
+}},
+
+{id:'f74',line:'E22',times:{
+  manresa_est:'17:45',manresa_val:'17:52',
+  bcn_uni:'18:51',bcn_palau:'18:53',bcn_mc:'18:55'
+}},
+
+{id:'f75',line:'E23',times:{
+  monistrol_alv:'18:15',monistrol_gom:'18:17',
+  olesa_clos:'18:27',olesa_cat:'18:29',
+  bcn_uni:'19:11',bcn_palau:'19:13',bcn_mc:'19:15'
+}},
+
+{id:'f76',line:'E23',times:{
+  olesa_clos:'18:30',olesa_cat:'18:32',
+  bcn_uni:'19:21',bcn_palau:'19:23',bcn_mc:'19:25'
+}},
+
+{id:'f77',line:'E22',times:{
+  manresa_est:'18:00',manresa_val:'18:07',
+  castellgali:'18:18',st_vicenc_pi:'18:22',
+  monistrol_alv:'18:33',monistrol_gom:'18:35',
+  olesa_clos:'18:45',olesa_cat:'18:47',
+  bcn_uni:'19:30',bcn_palau:'19:32',bcn_mc:'19:34',
+  bcn_macia:'19:37',bcn_munt:'19:40',bcn_gran:'19:45'
+}},
+
+{id:'f78',line:'E22',times:{
+  manresa_est:'18:15',manresa_val:'18:22',
+  bcn_uni:'19:20',bcn_palau:'19:22',bcn_mc:'19:24',
+  bcn_macia:'19:27',bcn_munt:'19:30',bcn_gran:'19:35'
+}},
+
+{id:'f79',line:'E23',times:{
+  monistrol_alv:'18:30',monistrol_gom:'18:32',
+  olesa_clos:'18:42',olesa_cat:'18:44',
+  bcn_uni:'19:25',bcn_palau:'19:27',bcn_mc:'19:29',
+  bcn_mc:'19:32',bcn_macia:'19:35',bcn_munt:'19:40'
+}},
+
+{id:'f80',line:'E22',times:{
+  manresa_est:'18:30',manresa_val:'18:37',
+  bcn_uni:'19:35',bcn_palau:'19:37',bcn_mc:'19:39',
+  bcn_macia:'19:42',bcn_munt:'19:45',bcn_gran:'19:50'
+}},
+
+{id:'f81',line:'E23',times:{
+  olesa_clos:'18:50',olesa_cat:'18:52',
+  bcn_uni:'19:40',bcn_palau:'19:42',bcn_mc:'19:44',
+  bcn_macia:'19:47',bcn_munt:'19:50',bcn_gran:'19:55'
+}},
+
+{id:'f82',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f83',line:'E22',times:{
+  manresa_est:'19:00',manresa_val:'19:07',
+  castellgali:'19:18',st_vicenc_pi:'19:22',
+  monistrol_alv:'19:33',monistrol_gom:'19:35',
+  olesa_clos:'19:45',olesa_cat:'19:47',
+  bcn_uni:'20:10',bcn_palau:'20:12',bcn_mc:'20:14',
+  bcn_macia:'20:17',bcn_munt:'20:20',bcn_gran:'20:25'
+}},
+
+{id:'f84',line:'E22',times:{
+  manresa_est:'19:15',manresa_val:'19:22',
+  bcn_uni:'20:25',bcn_palau:'20:27',bcn_mc:'20:29',
+  bcn_macia:'20:32',bcn_munt:'20:35',bcn_gran:'20:40'
+}},
+
+{id:'f85',line:'E22',times:{
+  manresa_est:'19:30',manresa_val:'19:37',
+  bcn_uni:'20:36',bcn_palau:'20:38',bcn_mc:'20:40'
+}},
+
+{id:'f86',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  bcn_uni:'21:06',bcn_palau:'21:08',bcn_mc:'21:10'
+}},
+
+{id:'f91',line:'E22',times:{
+  manresa_est:'20:00',manresa_val:'20:07',
+  castellgali:'20:18',st_vicenc_pi:'20:22',
+  monistrol_alv:'20:33',monistrol_gom:'20:35',
+  olesa_clos:'20:45',olesa_cat:'20:47',
+  bcn_uni:'21:15',bcn_palau:'21:17',bcn_mc:'21:19',
+  bcn_macia:'21:22',bcn_munt:'21:25',bcn_gran:'21:30'
+}},
+
+{id:'f92',line:'E23',times:{
+  olesa_clos:'20:30',olesa_cat:'20:37',
+  bcn_uni:'21:40',bcn_palau:'21:42',bcn_mc:'21:44',
+  bcn_macia:'21:47',bcn_munt:'21:50',bcn_gran:'21:55'
+}},
+
+{id:'f93',line:'E23',times:{
+  monistrol_alv:'21:00',monistrol_gom:'21:02',
+  olesa_clos:'21:12',olesa_cat:'21:14',
+  bcn_uni:'21:56',bcn_palau:'21:58',bcn_mc:'22:00'
+}},
+
+{id:'f94',line:'E22',times:{
+  manresa_est:'21:00',manresa_val:'21:07',
+  manresa_hos:'21:15',
+  bcn_uni:'22:05',bcn_palau:'22:07',bcn_mc:'22:09',
+  bcn_macia:'22:12',bcn_munt:'22:15',bcn_gran:'22:20'
+}},
+
+{id:'f95',line:'E23',times:{
+  olesa_clos:'22:45',
+  bcn_uni:'23:21',bcn_palau:'23:23',bcn_mc:'23:25'
+}},
+
+{id:'f96',line:'E22',times:{
+  manresa_est:'22:15',manresa_val:'22:22',
+  castellgali:'22:33',st_vicenc_pi:'22:37',
+  monistrol_alv:'22:48',monistrol_gom:'22:50',
+  olesa_clos:'23:00',olesa_cat:'23:02',
+  bcn_uni:'23:45',bcn_palau:'23:47',bcn_mc:'23:49',
+  bcn_macia:'23:52',bcn_munt:'23:55',bcn_gran:'0:00'
+}},
+  ],
+};
+
+// ═══ HORARIS BARCELONA → MANRESA ═══
+// Parades: bcn_via=Gran Via 612 | bcn_167=Còrsega 167 | bcn_marc=Maria Cristina
+//          bcn_rei=Palau Reial | bcn_edu=Zona Universitària
+//          olesa_oli=Olesa Pl.Oli | olesa_clos=Olesa Rotonda Els Closos
+//          monist_gom=Monistrol Can Gomis | monist_balm=Monistrol C.Balmes
+//          st_pi=St.Vicenç Pl.Pi | cast_fa=Castellgalí La Fàbrica
+//          man_hos=Manresa Hospital | man_vall=Manresa Pl.Valldaura | man_est=Manresa Estació
+const BM_FEINER = [
+  {id:'f95',line:'E22',times:{bcn_marc:'4:50', bcn_rei:'4:52', bcn_edu:'4:54', man_vall:'5:52', man_est:'6:00'}},
+  {id:'f96',line:'E23',times:{bcn_marc:'5:05', bcn_rei:'5:07', bcn_edu:'5:09', olesa_oli:'5:38', olesa_clos:'5:40', monist_gom:'5:48', monist_balm:'5:50'}},
+  {id:'f97',line:'E23',times:{bcn_via:'5:15', bcn_167:'5:20', bcn_marc:'5:30', bcn_rei:'5:32', bcn_edu:'5:34', olesa_oli:'6:13', olesa_clos:'6:15', monist_gom:'6:23', monist_balm:'6:25', st_pi:'6:31', cast_fa:'6:33', man_vall:'6:42', man_est:'6:50'}},
+  {id:'f100',line:'E23',times:{bcn_marc:'5:30', bcn_rei:'5:32', bcn_edu:'5:34', olesa_oli:'6:13', olesa_clos:'6:15'}},
+  {id:'f101',line:'E23',times:{bcn_via:'5:30', bcn_167:'5:35', bcn_marc:'5:45', bcn_rei:'5:47', bcn_edu:'5:49', man_vall:'6:57', man_est:'7:05'}},
+  {id:'f102',line:'E23',times:{bcn_marc:'6:00', bcn_rei:'6:02', bcn_edu:'6:04', olesa_oli:'6:53', olesa_clos:'6:55', monist_gom:'7:03', monist_balm:'7:05'}},
+  {id:'f103',line:'E22',times:{bcn_via:'6:00', bcn_167:'6:05', bcn_marc:'6:15', bcn_rei:'6:17', bcn_edu:'6:19', man_vall:'7:12', man_est:'7:20'}},
+  {id:'f104',line:'E22',times:{bcn_marc:'6:15', bcn_rei:'6:17', bcn_edu:'6:19', olesa_oli:'6:58', olesa_clos:'7:00', monist_gom:'7:08', monist_balm:'7:10'}},
+  {id:'f105',line:'E22',times:{bcn_marc:'6:30', bcn_rei:'6:32', bcn_edu:'6:34', man_vall:'7:42', man_est:'7:50'}},
+  {id:'f106',line:'E22',times:{bcn_marc:'6:45', bcn_rei:'6:47', bcn_edu:'6:49', olesa_oli:'7:33', olesa_clos:'7:35', monist_gom:'7:43', monist_balm:'7:45'}},
+  {id:'f107',line:'E22',times:{bcn_marc:'7:00', bcn_rei:'7:02', bcn_edu:'7:04', man_vall:'8:02', man_est:'8:10'}},
+  {id:'f108',line:'E22',times:{bcn_via:'7:00', bcn_167:'7:05', bcn_marc:'7:15', bcn_rei:'7:17', bcn_edu:'7:19', man_vall:'8:07', man_est:'8:15'}},
+  {id:'f109',line:'E23',times:{bcn_marc:'7:15', bcn_rei:'7:17', bcn_edu:'7:19', olesa_oli:'7:42', olesa_clos:'7:44'}},
+  {id:'f110',line:'E23',times:{bcn_marc:'7:30', bcn_rei:'7:32', bcn_edu:'7:34', olesa_oli:'7:57', olesa_clos:'7:59'}},
+  {id:'f111',line:'E22',times:{bcn_marc:'7:30', bcn_rei:'7:32', bcn_edu:'7:34', man_vall:'8:32', man_est:'8:40'}},
+  {id:'f112',line:'E22',times:{bcn_via:'7:20', bcn_167:'7:25', bcn_marc:'7:35', bcn_rei:'7:37', bcn_edu:'7:39', olesa_oli:'8:18', olesa_clos:'8:20', monist_gom:'8:28', monist_balm:'8:30', st_pi:'8:36', cast_fa:'8:38', man_vall:'8:47', man_est:'8:55'}},
+  {id:'f113',line:'E23',times:{bcn_marc:'7:45', bcn_rei:'7:47', bcn_edu:'7:49', olesa_oli:'8:33', olesa_clos:'8:35'}},
+  {id:'f114',line:'E23',times:{bcn_marc:'7:45', bcn_rei:'7:47', bcn_edu:'7:49', olesa_oli:'8:33', olesa_clos:'8:35', monist_gom:'8:43', monist_balm:'8:45'}},
+  {id:'f115',line:'E22',times:{bcn_via:'8:00', bcn_167:'8:05', bcn_marc:'8:15', bcn_rei:'8:17', bcn_edu:'8:19', man_vall:'9:12', man_est:'9:20'}},
+  {id:'f116',line:'E22',times:{bcn_marc:'8:05', bcn_rei:'8:07', bcn_edu:'8:09', man_vall:'9:07', man_est:'9:15'}},
+  {id:'f117',line:'E23',times:{bcn_marc:'8:05', bcn_rei:'8:07', bcn_edu:'8:09', olesa_oli:'8:33', olesa_clos:'8:35'}},
+  {id:'f118',line:'E22',times:{bcn_via:'8:15', bcn_167:'8:20', bcn_marc:'8:30', bcn_rei:'8:32', bcn_edu:'8:34', man_vall:'9:27', man_est:'9:35'}},
+  {id:'f119',line:'E23',times:{bcn_via:'8:30', bcn_167:'8:35', bcn_marc:'8:45', bcn_rei:'8:47', bcn_edu:'8:49', olesa_oli:'9:23', olesa_clos:'9:25', monist_gom:'9:33', monist_balm:'9:35'}},
+  {id:'f120',line:'E22',times:{bcn_via:'8:50', bcn_167:'8:55', bcn_marc:'9:05', bcn_rei:'9:07', bcn_edu:'9:09', olesa_oli:'9:53', olesa_clos:'9:55', monist_gom:'10:03', monist_balm:'10:05', st_pi:'10:11', cast_fa:'10:13', man_vall:'10:22', man_est:'10:30'}},
+  {id:'f121',line:'E22',times:{bcn_marc:'9:00', bcn_rei:'9:02', bcn_edu:'9:04', man_vall:'10:02', man_est:'10:10'}},
+  {id:'f122',line:'E23',times:{bcn_via:'9:15', bcn_167:'9:20', bcn_marc:'9:30', bcn_rei:'9:32', bcn_edu:'9:34', olesa_oli:'10:08', olesa_clos:'10:10'}},
+  {id:'f123',line:'E22',times:{bcn_via:'9:30', bcn_167:'9:35', bcn_marc:'9:45', bcn_rei:'9:47', bcn_edu:'9:49', man_vall:'10:42', man_est:'10:50'}},
+  {id:'f124',line:'E23',times:{bcn_marc:'10:00', bcn_rei:'10:02', bcn_edu:'10:04', olesa_oli:'10:38', olesa_clos:'10:40', monist_gom:'10:48', monist_balm:'10:50'}},
+  {id:'f125',line:'E22',times:{bcn_via:'10:00', bcn_167:'10:05', bcn_marc:'10:15', bcn_rei:'10:17', bcn_edu:'10:19', man_vall:'11:12', man_est:'11:20'}},
+  {id:'f126',line:'E22',times:{bcn_marc:'10:30', bcn_rei:'10:32', bcn_edu:'10:34', man_vall:'11:32', man_est:'11:40'}},
+  {id:'f127',line:'E22',times:{bcn_marc:'10:40', bcn_rei:'10:42', bcn_edu:'10:44', olesa_oli:'11:23', olesa_clos:'11:25'}},
+  {id:'f128',line:'E22',times:{bcn_via:'10:50', bcn_167:'10:55', bcn_marc:'11:05', bcn_rei:'11:07', bcn_edu:'11:09', olesa_oli:'11:53', olesa_clos:'11:55', monist_gom:'12:03', monist_balm:'12:05', st_pi:'12:11', cast_fa:'12:13', man_vall:'12:22', man_est:'12:30'}},
+  {id:'f129',line:'E22',times:{bcn_via:'11:00', bcn_167:'11:05', bcn_marc:'11:15', bcn_rei:'11:17', bcn_edu:'11:19', man_vall:'12:12', man_est:'12:20'}},
+  {id:'f130',line:'E23',times:{bcn_via:'11:15', bcn_167:'11:20', bcn_marc:'11:30', bcn_rei:'11:32', bcn_edu:'11:34', olesa_oli:'12:08', olesa_clos:'12:10', monist_gom:'12:18', monist_balm:'12:20'}},
+  {id:'f131',line:'E22',times:{bcn_via:'11:30', bcn_167:'11:35', bcn_marc:'11:45', bcn_rei:'11:47', bcn_edu:'11:49', man_vall:'12:42', man_est:'12:50'}},
+  {id:'f132',line:'E23',times:{bcn_via:'11:50', bcn_167:'11:55', bcn_marc:'12:05', bcn_rei:'12:07', bcn_edu:'12:09', olesa_oli:'12:43', olesa_clos:'12:45'}},
+  {id:'f133',line:'E22',times:{bcn_via:'12:00', bcn_167:'12:00', bcn_marc:'12:02', bcn_rei:'12:04', bcn_edu:'12:04', man_vall:'13:02', man_est:'13:10'}},
+  {id:'f134',line:'E22',times:{bcn_via:'12:30', bcn_167:'12:35', bcn_marc:'12:45', bcn_rei:'12:47', bcn_edu:'12:49', man_hos:'13:35', man_vall:'13:42', man_est:'13:50'}},
+  {id:'f135',line:'E23',times:{bcn_via:'12:50', bcn_167:'12:55', bcn_marc:'13:05', bcn_rei:'13:07', bcn_edu:'13:09', olesa_oli:'13:53', olesa_clos:'13:55', monist_gom:'14:03', monist_balm:'14:05', st_pi:'14:11', cast_fa:'14:13', man_vall:'14:22', man_est:'14:30'}},
+  {id:'f136',line:'E23',times:{bcn_marc:'13:00', bcn_rei:'13:02', bcn_edu:'13:04', olesa_oli:'13:38', olesa_clos:'13:40'}},
+  {id:'f137',line:'E22',times:{bcn_via:'13:00', bcn_167:'13:05', bcn_marc:'13:15', bcn_rei:'13:17', bcn_edu:'13:19', man_vall:'14:12', man_est:'14:20'}},
+  {id:'f138',line:'E22',times:{bcn_marc:'13:30', bcn_rei:'13:32', bcn_edu:'13:34', man_vall:'14:32', man_est:'14:40'}},
+  {id:'f139',line:'E23',times:{bcn_marc:'13:45', bcn_rei:'13:47', bcn_edu:'13:49', olesa_oli:'14:23', olesa_clos:'14:25', monist_gom:'14:33', monist_balm:'14:35'}},
+  {id:'f140',line:'E22',times:{bcn_via:'14:00', bcn_167:'14:05', bcn_marc:'14:15', bcn_rei:'14:17', bcn_edu:'14:19', man_vall:'15:12', man_est:'15:20'}},
+  {id:'f141',line:'E22',times:{bcn_via:'14:30', bcn_167:'14:35', bcn_marc:'14:45', bcn_rei:'14:47', bcn_edu:'14:49', man_vall:'15:42', man_est:'15:50'}},
+  {id:'f142',line:'E22',times:{bcn_via:'14:30', bcn_167:'14:35', bcn_marc:'14:45', bcn_rei:'14:47', bcn_edu:'14:49', olesa_oli:'15:23', olesa_clos:'15:25'}},
+  {id:'f143',line:'E23',times:{bcn_marc:'15:00', bcn_rei:'15:02', bcn_edu:'15:04', olesa_oli:'15:43', olesa_clos:'15:45', monist_gom:'15:53', monist_balm:'15:55'}},
+  {id:'f144',line:'E22',times:{bcn_marc:'15:00', bcn_rei:'15:02', bcn_edu:'15:04', man_vall:'16:02', man_est:'16:10'}},
+  {id:'f145',line:'E23',times:{bcn_via:'15:15', bcn_167:'15:20', bcn_marc:'15:30', bcn_rei:'15:32', bcn_edu:'15:34', olesa_oli:'16:13', olesa_clos:'16:15', monist_gom:'16:23', monist_balm:'16:25'}},
+  {id:'f146',line:'E23',times:{bcn_marc:'15:30', bcn_rei:'15:32', bcn_edu:'15:34', olesa_oli:'16:13', olesa_clos:'16:15', monist_gom:'16:23', monist_balm:'16:25'}},
+  {id:'f147',line:'E23',times:{bcn_marc:'15:45', bcn_rei:'15:47', bcn_edu:'15:49', olesa_oli:'16:28', olesa_clos:'16:30'}},
+  {id:'f148',line:'E22',times:{bcn_via:'15:30', bcn_167:'15:35', bcn_marc:'15:45', bcn_rei:'15:47', bcn_edu:'15:49', man_vall:'16:42', man_est:'16:50'}},
+  {id:'f149',line:'E22',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', man_vall:'17:12', man_est:'17:20'}},
+  {id:'f150',line:'E23',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'17:03', olesa_clos:'17:05'}},
+  {id:'f151',line:'E23',times:{bcn_via:'16:00', bcn_167:'16:05', bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'16:53', olesa_clos:'16:55', monist_gom:'17:03', monist_balm:'17:05', st_pi:'17:11', cast_fa:'17:33', man_vall:'17:22', man_est:'17:30'}},
+  {id:'f152',line:'E22',times:{bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', man_vall:'17:12', man_est:'17:20'}},
+  {id:'f153',line:'E23',times:{bcn_marc:'16:15', bcn_rei:'16:17', bcn_edu:'16:19', olesa_oli:'16:53', olesa_clos:'16:55'}},
+  {id:'f154',line:'E23',times:{bcn_marc:'16:30', bcn_rei:'16:32', bcn_edu:'16:34', man_vall:'17:32', man_est:'17:40'}},
+  {id:'f155',line:'E23',times:{bcn_marc:'16:30', bcn_rei:'16:32', bcn_edu:'16:34', olesa_oli:'17:08', olesa_clos:'17:10'}},
+  {id:'f156',line:'E23',times:{bcn_via:'16:45', bcn_167:'16:50', bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', man_vall:'18:02', man_est:'18:10'}},
+  {id:'f157',line:'E23',times:{bcn_via:'16:45', bcn_167:'16:50', bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', olesa_oli:'17:38', olesa_clos:'17:40', monist_gom:'17:48', monist_balm:'17:50'}},
+  {id:'f158',line:'E23',times:{bcn_marc:'17:00', bcn_rei:'17:02', bcn_edu:'17:04', olesa_oli:'17:43', olesa_clos:'17:45'}},
+  {id:'f159',line:'E22',times:{bcn_via:'17:00', bcn_167:'17:05', bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', man_vall:'18:17', man_est:'18:25'}},
+  {id:'f160',line:'E22',times:{bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', man_vall:'18:17', man_est:'18:25'}},
+  {id:'f161',line:'E23',times:{bcn_marc:'17:15', bcn_rei:'17:17', bcn_edu:'17:19', olesa_oli:'17:58', olesa_clos:'18:00', monist_gom:'18:08', monist_balm:'18:10'}},
+  {id:'f162',line:'E22',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', man_vall:'18:47', man_est:'18:55'}},
+  {id:'f163',line:'E23',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:28', olesa_clos:'18:30'}},
+  {id:'f164',line:'E22',times:{bcn_via:'17:30', bcn_167:'17:35', bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:33', olesa_clos:'18:35', monist_gom:'18:43', monist_balm:'18:45', st_pi:'18:51', cast_fa:'18:53', man_vall:'19:02', man_est:'19:10'}},
+  {id:'f165',line:'E23',times:{bcn_marc:'17:45', bcn_rei:'17:47', bcn_edu:'17:49', olesa_oli:'18:28', olesa_clos:'18:30'}},
+  {id:'f166',line:'E23',times:{bcn_via:'17:45', bcn_167:'17:50', bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', olesa_oli:'18:43', olesa_clos:'18:45', monist_gom:'18:53', monist_balm:'18:55'}},
+  {id:'f167',line:'E22',times:{bcn_via:'17:45', bcn_167:'17:50', bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', man_vall:'19:02', man_est:'19:10'}},
+  {id:'f168',line:'E23',times:{bcn_marc:'18:00', bcn_rei:'18:02', bcn_edu:'18:04', olesa_oli:'18:43', olesa_clos:'18:45'}},
+  {id:'f169',line:'E22',times:{bcn_via:'18:00', bcn_167:'18:05', bcn_marc:'18:15', bcn_rei:'18:17', bcn_edu:'18:19', man_vall:'19:17', man_est:'19:25'}},
+  {id:'f170',line:'E23',times:{bcn_marc:'18:15', bcn_rei:'18:17', bcn_edu:'18:19', olesa_oli:'18:53', olesa_clos:'18:55'}},
+  {id:'f171',line:'E23',times:{bcn_via:'18:15', bcn_167:'18:20', bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', man_vall:'19:32', man_est:'19:40'}},
+  {id:'f172',line:'E23',times:{bcn_via:'18:15', bcn_167:'18:20', bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', olesa_oli:'18:58', olesa_clos:'19:00', monist_gom:'19:08', monist_balm:'19:10'}},
+  {id:'f173',line:'E22',times:{bcn_marc:'18:30', bcn_rei:'18:32', bcn_edu:'18:34', man_vall:'19:32', man_est:'19:40'}},
+  {id:'f174',line:'E22',times:{bcn_marc:'18:45', bcn_rei:'18:47', bcn_edu:'18:49', man_vall:'19:47', man_est:'19:55'}},
+  {id:'f175',line:'E23',times:{bcn_marc:'18:45', bcn_rei:'18:47', bcn_edu:'18:49', olesa_oli:'19:33', olesa_clos:'19:35', monist_gom:'19:43', monist_balm:'19:45'}},
+  {id:'f176',line:'E23',times:{bcn_via:'19:00', bcn_167:'19:05', bcn_marc:'19:15', bcn_rei:'19:17', bcn_edu:'19:19', olesa_oli:'20:03', olesa_clos:'20:05', monist_gom:'20:13', monist_balm:'20:15', st_pi:'20:21', cast_fa:'20:23', man_vall:'20:32', man_est:'20:40'}},
+  {id:'f177',line:'E22',times:{bcn_marc:'19:00', bcn_rei:'19:02', bcn_edu:'19:04', man_vall:'20:02', man_est:'20:10'}},
+  {id:'f178',line:'E22',times:{bcn_marc:'19:30', bcn_rei:'19:32', bcn_edu:'19:34', man_vall:'20:32', man_est:'20:40'}},
+  {id:'f179',line:'E23',times:{bcn_marc:'19:30', bcn_rei:'19:32', bcn_edu:'19:34', olesa_oli:'20:08', olesa_clos:'20:10', monist_gom:'20:18', monist_balm:'20:20'}},
+  {id:'f180',line:'E22',times:{bcn_marc:'19:45', bcn_rei:'19:47', bcn_edu:'19:49', man_vall:'20:47', man_est:'20:55'}},
+  {id:'f181',line:'E22',times:{bcn_via:'20:15', bcn_167:'20:20', bcn_marc:'20:30', bcn_rei:'20:32', bcn_edu:'20:34', man_vall:'21:27', man_est:'21:35'}},
+  {id:'f182',line:'E23',times:{bcn_via:'20:30', bcn_167:'20:35', bcn_marc:'20:45', bcn_rei:'20:47', bcn_edu:'20:49', olesa_oli:'21:33', olesa_clos:'21:35', monist_gom:'21:43', monist_balm:'21:45', st_pi:'21:51', cast_fa:'21:53', man_vall:'22:02', man_est:'22:10'}},
+  {id:'f183',line:'E22',times:{bcn_via:'20:45', bcn_167:'20:50', bcn_marc:'21:00', bcn_rei:'21:02', bcn_edu:'21:04', man_vall:'21:57', man_est:'22:05'}},
+  {id:'f184',line:'E22',times:{bcn_marc:'21:15', bcn_rei:'21:17', bcn_edu:'21:19', man_vall:'22:17', man_est:'22:25'}},
+  {id:'f185',line:'E23',times:{bcn_via:'21:20', bcn_167:'21:25', bcn_marc:'21:35', bcn_rei:'21:37', bcn_edu:'21:39', olesa_oli:'22:18', olesa_clos:'22:20'}},
+  {id:'f186',line:'E22',times:{bcn_via:'21:45', bcn_167:'21:50', bcn_marc:'22:00', bcn_rei:'22:02', bcn_edu:'22:04', man_vall:'23:07', man_est:'23:15'}},
+  {id:'f187',line:'E23',times:{bcn_via:'22:00', bcn_167:'22:05', bcn_marc:'22:15', bcn_rei:'22:17', bcn_edu:'22:19', olesa_oli:'23:03', olesa_clos:'23:05', monist_gom:'23:13', monist_balm:'23:15', st_pi:'23:21', cast_fa:'23:23', man_vall:'23:32', man_est:'23:40'}},
+  {id:'f188',line:'E23',times:{bcn_marc:'22:00', bcn_rei:'22:02', bcn_edu:'22:04', olesa_oli:'22:43', olesa_clos:'22:45'}},
+  {id:'f189',line:'E23',times:{bcn_via:'23:40', bcn_167:'23:45', bcn_marc:'23:55', bcn_rei:'23:57', bcn_edu:'23:59', olesa_oli:'0:43', olesa_clos:'0:45', monist_gom:'0:53', monist_balm:'0:55', st_pi:'1:01', cast_fa:'1:03', man_vall:'1:12', man_est:'1:20'}}
+];
+
+const dow = new Date().getDay();
+let currentDay = dow === 0 ? 'diumenge' : dow === 6 ? 'dissabte' : 'feiner';
+let myVotes = {}, sharing = {};
+
+function toMins(t) {
+  if (!t) return -1;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+function nowMins() {
+  const n = new Date();
+  return n.getHours() * 60 + n.getMinutes();
+}
+
+function setDay(d) {
+  currentDay = d;
+  const banner = document.getElementById('day-banner');
+  const typeEl = document.getElementById('day-type-text');
+  const descEl = document.getElementById('day-desc-text');
+  banner.className = 'day-banner';
+  ['btn-f','btn-s','btn-d'].forEach(id => { const el = document.getElementById(id); if(el) el.className = 'ds-btn'; });
+  if (d === 'feiner') {
+    banner.classList.add('feiner');
+    typeEl.textContent = 'Dia feiner';
+    descEl.textContent = 'Servei complet · dilluns a divendres (excepte agost)';
+    document.getElementById('btn-f').classList.add('active-f');
+  } else if (d === 'dissabte') {
+    banner.classList.add('dissabte');
+    typeEl.textContent = 'Dissabte i festiu';
+    descEl.textContent = 'Servei reduït de cap de setmana i dies festius';
+    document.getElementById('btn-s').classList.add('active-s');
+  } else {
+    banner.classList.add('festiu');
+    typeEl.textContent = 'Diumenge';
+    descEl.textContent = 'Servei de diumenge (excepte festius)';
+    document.getElementById('btn-d').classList.add('active-d');
+  }
+  doSearch();
+}
+
+function isFromOtherUser(snapshot) {
+  // Retorna true si el canvi ve d'un altre usuari (no de nosaltres)
+  // fromCache=false i hasPendingWrites=false = dada confirmada del servidor d'altri
+  return !snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites;
+}
+
+function loadVotes() {
+  // Vots: { includeMetadataChanges: true } per detectar si és local o extern
+  db.collection("votes").onSnapshot({ includeMetadataChanges: false }, snapshot => {
+    // includeMetadataChanges: false → només rebem canvis CONFIRMATS del servidor
+    // Això elimina els snapshots locals i evita el parpadell
+    const affectedTrips = new Set();
+    snapshot.docChanges().forEach(change => {
+      const v = change.doc.data();
+      const key = v.tripId + '_' + v.type;
+      if (v.date !== TODAY) return;
+      if (change.type === 'removed') {
+        delete globalVotes[key];
+        affectedTrips.add(v.tripId);
+      } else {
+        // Sempre actualitzem — pot ser canvi propi confirmat o d'altre usuari
+        globalVotes[key] = v.value;
+        affectedTrips.add(v.tripId);
+      }
+    });
+    affectedTrips.forEach(tripId => {
+      updateBadges(tripId);
+      const myO = globalVotes[tripId + '_occ'];
+      const myT = globalVotes[tripId + '_time'];
+      if (myO) movePill(tripId, 'occ', myO);
+      if (myT) movePill(tripId, 'time', myT);
+    });
+  });
+
+  // Ratings: només re-renderitzar per canvis externs
+  db.collection("ratings").onSnapshot({ includeMetadataChanges: true }, snapshot => {
+    if (snapshot.metadata.hasPendingWrites) return; // canvi local, ignorar
+    const raw = {};
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.date !== TODAY) return;
+      if (!raw[d.tripId]) raw[d.tripId] = { sum: 0, count: 0 };
+      raw[d.tripId].sum += d.stars;
+      raw[d.tripId].count += 1;
+    });
+    globalRatings = raw;
+    // Actualitzar ratings al DOM sense re-renderitzar tot
+    updateAllRatings();
+  });
+
+  // Ubicacions: sempre externes (la nostra ja l'actualitzem localment)
+  db.collection("locations").onSnapshot(snapshot => {
+    let changed = false;
+    snapshot.docChanges().forEach(change => {
+      if (change.doc.metadata.hasPendingWrites) return; // nostra, ja actualitzada
+      const d = change.doc.data();
+      if (d.date !== TODAY) { delete userLocations[d.tripId]; changed = true; return; }
+      if (Date.now() - d.time < 5 * 60 * 1000) {
+        userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
+        changed = true;
+      } else { delete userLocations[d.tripId]; changed = true; }
+    });
+    if (changed) doSearch();
+  });
+
+  // Confirmacions: actualitzar comptador al DOM sense re-renderitzar
+  db.collection("confirmed").onSnapshot({ includeMetadataChanges: true }, snapshot => {
+    if (snapshot.metadata.hasPendingWrites) return;
+    const raw = {};
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      if (d.date !== TODAY) return;
+      if (!raw[d.tripId]) raw[d.tripId] = 0;
+      raw[d.tripId] += 1;
+    });
+    globalConfirmed = raw;
+    // Actualitzar botons "ja ha passat" sense re-renderitzar
+    updateAllConfirmed();
+  });
+
+  // Historial per prediccions: només en càrrega inicial
+  db.collection("votes").onSnapshot(snapshot => {
+    if (snapshot.metadata.fromCache) return; // esperar dades reals
+    const hist = {};
+    snapshot.forEach(doc => {
+      const v = doc.data();
+      if (!v.date || v.date === TODAY) return;
+      if (!hist[v.tripId]) hist[v.tripId] = { occ: {}, time: {}, days: new Set() };
+      if (v.type === 'occ') {
+        hist[v.tripId].occ[v.value] = (hist[v.tripId].occ[v.value] || 0) + 1;
+        hist[v.tripId].days.add(v.date);
+      }
+      if (v.type === 'time') {
+        hist[v.tripId].time[v.value] = (hist[v.tripId].time[v.value] || 0) + 1;
+      }
+    });
+    Object.keys(hist).forEach(id => { hist[id].days = hist[id].days.size; });
+    const prevHistory = JSON.stringify(globalHistory);
+    globalHistory = hist;
+    if (JSON.stringify(hist) !== prevHistory) doSearch();
+  });
+}
+
+// Actualitzar ratings al DOM sense re-renderitzar
+function updateAllRatings() {
+  document.querySelectorAll('[data-rating-id]').forEach(wrap => {
+    const tripId = wrap.dataset.ratingId;
+    const r = globalRatings[tripId];
+    const avgWrap = wrap.querySelector('.rating-avg-wrap');
+    if (!avgWrap) return;
+    if (r && r.count > 0) {
+      avgWrap.innerHTML = `<div class="rating-avg"><span>${(r.sum/r.count).toFixed(1)}</span> · ${r.count} ${r.count===1?'valoració':'valoracions'}</div>`;
+    }
+  });
+}
+
+// Actualitzar botons "ja ha passat" sense re-renderitzar
+function updateAllConfirmed() {
+  Object.keys(globalConfirmed).forEach(tripId => {
+    const count = globalConfirmed[tripId];
+    const btn = document.querySelector(`.btn-passed[data-trip-id="${tripId}"]`);
+    if (!btn) return;
+    const alreadyDone = btn.classList.contains('done');
+    if (!alreadyDone) {
+      btn.innerHTML = `👋 Confirma que ja ha passat${count > 0 ? ' · ' + count + ' ho confirmen' : ''}`;
+    } else {
+      const dep = btn.dataset.dep || '';
+      btn.innerHTML = `✓ El bus de les ${dep} ja ha passat · ${count} ho confirmen`;
+    }
+  });
+}
+
+// Clau de data d'avui: YYYYMMDD
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+}
+const TODAY = todayKey();
+
+// Ordre geografic de les parades Manresa -> Barcelona
+const STOP_ORDER = [
+  'manresa_est','manresa_val','manresa_hos','castellgali','st_vicenc_pi',
+  'monistrol_alv','monistrol_gom','olesa_clos','olesa_cat',
+  'bcn_uni','bcn_palau','bcn_mc','bcn_macia','bcn_munt','bcn_gran'
+];
+
+// Retorna el tipus de dia seguent (feiner->dissabte->diumenge->feiner...)
+function nextDayType(dayType) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dow = tomorrow.getDay(); // 0=diu, 6=dis
+  return dow === 0 ? 'diumenge' : dow === 6 ? 'dissabte' : 'feiner';
+}
+
+function getTripsForDay(dayType, orig, dest) {
+  const pool = (typeof currentDir !== 'undefined' && currentDir === 'bm')
+    ? BM_FEINER
+    : (T[dayType] || []);
+  return pool
+    .filter(t => t.times[orig] && t.times[dest])
+    .filter(t => {
+      const o = toMins(t.times[orig]), d = toMins(t.times[dest]);
+      if (o < 0 || d < 0) return false;
+      if (o > 22*60 && d < 3*60) return true;
+      return o < d;
+    })
+    .sort((a, b) => toMins(a.times[orig]) - toMins(b.times[orig]));
+}
+
+function doSearch() {
+  const orig = document.getElementById('sel-orig').value;
+  const dest = document.getElementById('sel-dest').value;
+
+  if (orig === dest) {
+    document.getElementById('results').innerHTML = '<div class="no-results">Selecciona parades diferents.</div>';
+    return;
+  }
+
+  const origIdx = STOP_ORDER.indexOf(orig);
+  const destIdx = STOP_ORDER.indexOf(dest);
+
+  // Bloquejar ruta inversa - nomes tenim horaris Manresa->Barcelona
+  if (origIdx > destIdx) {
+    document.getElementById('results').innerHTML = `
+      <div class="ruta-error">
+        Aquesta app només té els horaris en direcció<br>
+        <strong>Manresa → Barcelona</strong>.<br>
+        Per anar de Barcelona a Manresa, consulta
+        <a href="https://catalunya.monbus.es" target="_blank" style="color:#A32D2D;">catalunya.monbus.es</a>
+      </div>`;
+    return;
+  }
+
+  const tripsAvui = getTripsForDay(currentDay, orig, dest);
+  const now = nowMins();
+
+  let passed = null, nextList = [];
+  for (const t of tripsAvui) {
+    if (toMins(t.times[orig]) <= now) passed = t;
+    else nextList.push(t);
+  }
+
+  // Si és de matinada (00:00-05:29) i no hi ha bus passat avui,
+  // busquem el darrer bus d'ahir (sempre feiner) com a "bus anterior"
+  if (!passed && now < 5 * 60 + 30) {
+    const tripsAhir = getTripsForDay('feiner', orig, dest);
+    if (tripsAhir.length > 0) {
+      // El darrer bus d'ahir és el que tenia l'hora de sortida més tardana
+      passed = tripsAhir[tripsAhir.length - 1];
+    }
+  }
+
+  // Si queden menys de 4 busos avui, afegim els primers de dema
+  const TOTAL_NEXT = 4;
+  if (nextList.length < TOTAL_NEXT) {
+    const tomorrowType = nextDayType(currentDay);
+    const tripsDema = getTripsForDay(tomorrowType, orig, dest);
+    const needed = TOTAL_NEXT - nextList.length;
+    const demaBusos = tripsDema.slice(0, needed).map(t => ({ ...t, _dema: true, _demaTipus: tomorrowType }));
+    nextList = [...nextList, ...demaBusos];
+  }
+
+  let html = '';
+  if (passed) {
+    html += '<p class="section-label">Bus anterior</p>';
+    html += renderCard(passed, orig, dest, 'passed');
+  }
+
+  // Separar busos d'avui i de dema
+  const avuiList = nextList.filter(t => !t._dema);
+  const demaList = nextList.filter(t => t._dema);
+
+  if (avuiList.length > 0) {
+    html += '<p class="section-label">Proper bus</p>';
+    html += renderCard(avuiList[0], orig, dest, 'next');
+    if (avuiList.length > 1) {
+      html += '<p class="section-label">Següents busos</p>';
+      for (let i = 1; i < avuiList.length; i++)
+        html += renderCard(avuiList[i], orig, dest, '');
+    }
+  }
+
+  if (demaList.length > 0) {
+    const tipusLabel = demaList[0]._demaTipus === 'dissabte' ? 'Dissabte'
+      : demaList[0]._demaTipus === 'diumenge' ? 'Diumenge' : 'Demà';
+    html += `<p class="section-label">${tipusLabel} — primers busos</p>`;
+    for (const t of demaList)
+      html += renderCard(t, orig, dest, '');
+  }
+
+  if (!passed && nextList.length === 0)
+    html = '<div class="no-results">No hi ha busos per a aquesta ruta avui.</div>';
+
+  // Injectar resultats: si el passed card ja existeix i és el mateix, preservar estat
+  const resultsEl = document.getElementById('results');
+  const existingPassed = resultsEl.querySelector('.bus-card.passed');
+  const newTemp = document.createElement('div');
+  newTemp.innerHTML = html;
+  const newPassed = newTemp.querySelector('.bus-card.passed');
+
+  // Si el passed és el mateix trip, preservar l'estat obert/tancat
+  if (existingPassed && newPassed) {
+    const existingId = existingPassed.querySelector('[id^="pbody-"]');
+    const newId = newPassed.querySelector('[id^="pbody-"]');
+    if (existingId && newId && existingId.id === newId.id) {
+      // Copiar l'estat del passed existent al nou
+      if (existingId.classList.contains('open')) newId.classList.add('open');
+      const existChev = existingPassed.querySelector('.passed-chevron');
+      const newChev = newPassed.querySelector('.passed-chevron');
+      if (existChev && newChev && existChev.classList.contains('open')) newChev.classList.add('open');
+    }
+  }
+
+  resultsEl.innerHTML = newTemp.innerHTML;
+  requestAnimationFrame(() => initPills());
+}
+
+// Retorna els badges de predicció basats en l'historial dels últims dies
+// Llindar: si el 60% o mes dels dies va tenir aquell valor -> predicció
+function predictionHtml(tripId) {
+  const h = globalHistory[tripId];
+  if (!h || h.days < 2) return ''; // cal almenys 2 dies d'historial
+
+  const badges = [];
+  const days = h.days;
+
+  // Predicció d'ocupació
+  const occPle  = h.occ['ple']  || 0;
+  const occMig  = h.occ['mig']  || 0;
+  const occBuit = h.occ['buit'] || 0;
+  const occTotal = occPle + occMig + occBuit;
+  if (occTotal > 0) {
+    if (occPle / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-ple">Probablement anirà ple</span>');
+    else if (occMig / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-mig">Probablement anirà mig ple</span>');
+    else if (occBuit / occTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-buit">Probablement anirà buit</span>');
+  }
+
+  // Predicció de puntualitat
+  const timeTard = h.time['tard'] || 0;
+  const timePunt = h.time['punt'] || 0;
+  const timeTotal = timeTard + timePunt;
+  if (timeTotal > 0) {
+    if (timeTard / timeTotal >= 0.6)
+      badges.push('<span class="predict-badge pb-tard">Probablement anirà tard</span>');
+  }
+
+  if (badges.length === 0) return '';
+
+  return `<div class="predict-wrap">
+    ${badges.join('')}
+    <span class="predict-label">Basat en ${days} dia${days !== 1 ? 'es' : ''} anteriors</span>
+  </div>`;
+}
+
+function mapHtml(tripId) {
+  const loc = userLocations[tripId];
+  if (!loc) return `<div id="map-${tripId}"></div>`;
+  return `<div id="map-${tripId}" style="margin-top:10px;">
+    <iframe width="100%" height="180" style="border-radius:10px;border:0;" loading="lazy"
+      src="https://www.openstreetmap.org/export/embed.html?bbox=${loc.lng-0.01}%2C${loc.lat-0.01}%2C${loc.lng+0.01}%2C${loc.lat+0.01}&marker=${loc.lat}%2C${loc.lng}">
+    </iframe>
+    <div style="font-size:10px;color:#555;text-align:center;margin-top:3px;">Ubicació reportada a les ${loc.hora}</div>
+  </div>`;
+}
+
+function ratingHtml(tripId) {
+  const r = globalRatings[tripId];
+  const myR = myRatings[tripId] || 0;
+  const avg = r && r.count > 0 ? (r.sum/r.count) : 0;
+  return `<div class="rating-wrap" data-rating-id="${tripId}">
+    <div class="rating-label">Valoració del servei</div>
+    <div class="stars">
+      ${[1,2,3,4,5].map(n => `<div class="star ${myR>=n?'active':''}" onclick="rateTrip('${tripId}',${n})">${myR>=n?'⭐':'☆'}</div>`).join('')}
+    </div>
+    <div class="rating-avg-wrap">
+      ${r && r.count > 0
+        ? `<div class="rating-avg"><span>${avg.toFixed(1)}</span> · ${r.count} ${r.count===1?'valoració':'valoracions'}</div>`
+        : '<div class="rating-avg" style="width:100%;text-align:center;color:#444;">Sigues el primer en valorar</div>'}
+    </div>
+  </div>`;
+}
+
+function renderCard(trip, orig, dest, type) {
+  const dep = trip.times[orig];
+  const arr = trip.times[dest];
+  const isPassed = type === 'passed';
+  const isNext = type === 'next';
+  // Interactiu = només el bus anterior i el proper bus, NO els "Següents busos"
+  const interactive = isPassed || isNext;
+
+  const myO = globalVotes[trip.id + '_occ'];
+  const myT = globalVotes[trip.id + '_time'];
+
+  const confirmedCount = globalConfirmed[trip.id] || 0;
+  const isConfirmed = confirmedCount > 0;
+  const alreadyConfirmed = sessionStorage.getItem('confirmed_' + trip.id);
+
+  // Badges només per a busos interactius (passat i proper)
+  let occBadge = !interactive ? '' :
+      myO === 'ple' ? `<span class="badge br">Ple</span>`
+    : myO === 'mig' ? `<span class="badge bo">Mig ple</span>`
+    : myO === 'buit' ? `<span class="badge bg">Buit</span>`
+    : isPassed ? `<span class="badge bx">Sense vots</span>` : '';
+
+  let timeBadge = !interactive ? '' :
+      myT === 'tard' ? `<span class="badge ba">Retard</span>`
+    : myT === 'punt' ? `<span class="badge bg">Puntual</span>` : '';
+
+  const shareConfirm = sharing[trip.id]
+    ? `<div class="share-confirm">Ubicació compartida a les ${new Date().getHours()}:${String(new Date().getMinutes()).padStart(2,'0')} · gràcies!</div>`
+    : '';
+
+  // ── BUS ANTERIOR (interactiu) ─────────────────────────────────────────
+  const passedSection = isPassed ? `
+    ${ratingHtml(trip.id)}
+    <button class="share-btn ${sharing[trip.id]?'on':''}" onclick="ts('${trip.id}')" data-share-id="${trip.id}">
+      📍 ${sharing[trip.id]?'Ubicació actualitzada':'Estava en aquest bus · comparteix ubicació'}
+    </button>
+    ${mapHtml(trip.id)}
+    <button
+      class="btn-passed ${alreadyConfirmed ? 'done' : ''}"
+      data-trip-id="${trip.id}"
+      data-dep="${dep}"
+      onclick="${alreadyConfirmed ? '' : "askConfirmPassed('" + trip.id + "')"}"
+      ${alreadyConfirmed ? 'disabled' : ''}>
+      ${alreadyConfirmed
+        ? '✓ El bus de les ' + dep + ' ja ha passat · ' + confirmedCount + ' ho confirmen'
+        : '👋 Confirma que ja ha passat' + (confirmedCount > 0 ? ' · ' + confirmedCount + ' ho confirmen' : '')}
+    </button>` : '';
+
+  // ── PROPER BUS (interactiu) ───────────────────────────────────────────
+  const nextSection = isNext ? `
+    ${predictionHtml(trip.id)}
+    <div class="vote-section">
+      <div>
+        <div class="vote-label">Ocupació</div>
+        <div class="pill-wrap occ" id="pill-${trip.id}-occ" data-id="${trip.id}" data-type="occ">
+          <div class="pill-track"></div>
+          <div class="pill-opt ${myO==='buit'?'active active-buit':''}" data-val="buit" onclick="cv('${trip.id}','occ','buit')">Buit</div>
+          <div class="pill-opt ${myO==='mig'?'active active-mig':''}" data-val="mig" onclick="cv('${trip.id}','occ','mig')">Mig</div>
+          <div class="pill-opt ${myO==='ple'?'active active-ple':''}" data-val="ple" onclick="cv('${trip.id}','occ','ple')">Ple</div>
+        </div>
+      </div>
+      <div>
+        <div class="vote-label">Puntualitat</div>
+        <div class="pill-wrap time" id="pill-${trip.id}-time" data-id="${trip.id}" data-type="time">
+          <div class="pill-track"></div>
+          <div class="pill-opt ${myT==='punt'?'active active-punt':''}" data-val="punt" onclick="cv('${trip.id}','time','punt')">Puntual</div>
+          <div class="pill-opt ${myT==='tard'?'active active-tard':''}" data-val="tard" onclick="cv('${trip.id}','time','tard')">Tard</div>
+        </div>
+      </div>
+    </div>
+    <button class="share-btn ${sharing[trip.id]?'on':''}" onclick="ts('${trip.id}')" data-share-id="${trip.id}">
+      📍 ${sharing[trip.id]?'Ubicació actualitzada':'Estic en aquest bus · comparteix ubicació'}
+    </button>
+    ${ratingHtml(trip.id)}
+    ${mapHtml(trip.id)}
+    ${shareConfirm}` : '';
+
+  // ── BUSOS INFORMATIUS (no interactius, només hora i línia) ────────────
+  const cardClass = isPassed
+    ? 'bus-card passed' + (isConfirmed ? ' confirmed' : '')
+    : isNext ? 'bus-card isnext' : 'bus-card';
+
+  if (isPassed) {
+    return `<div class="${cardClass}">
+      <div class="tag-passed">Bus anterior</div>
+      <div class="passed-header" onclick="togglePassed('${trip.id}')">
+        <div>
+          <div class="card-time" style="font-size:34px;font-weight:800;">${dep}
+            <span class="card-sub" style="display:inline;margin-left:8px;">Arr. ${arr} · ${trip.line}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="badges" data-badges-id="${trip.id}">${occBadge}${timeBadge}</div>
+          <span class="passed-chevron" id="chev-${trip.id}">▼</span>
+        </div>
+      </div>
+      <div class="passed-body" id="pbody-${trip.id}">
+        <div style="padding-top:9px;border-top:0.5px solid #2a2a2a;margin-top:8px;">
+          ${passedSection}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="${cardClass}">
+    ${isNext ? '<div class="tag-next">Proper bus</div>' : ''}
+    <div class="card-top">
+      <div>
+        <div class="card-time">${dep}</div>
+        <div class="card-sub">Arr. ${arr} · ${trip.line}</div>
+      </div>
+      <div class="badges" data-badges-id="${trip.id}">${occBadge}${timeBadge}</div>
+    </div>
+    ${nextSection}
+  </div>`;
+}
+
+function togglePassed(id) {
+  const body = document.getElementById('pbody-' + id);
+  const chev = document.getElementById('chev-' + id);
+  if (!body) return;
+
+  const isOpen = body.classList.contains('open');
+
+  if (isOpen) {
+    // Tancar: fixa l'alçada actual, després anima a 0
+    body.style.height = body.scrollHeight + 'px';
+    body.classList.remove('open');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        body.style.height = '0';
+      });
+    });
+    body.addEventListener('transitionend', () => {
+      body.style.height = '';
+    }, { once: true });
+  } else {
+    // Obrir: anima de 0 a scrollHeight, després deixa auto
+    body.style.height = '0';
+    body.classList.add('open');
+    const targetH = body.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        body.style.height = targetH;
+      });
+    });
+    body.addEventListener('transitionend', () => {
+      body.style.height = 'auto';
+    }, { once: true });
+  }
+
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+function cv(id, type, val) {
+  const docId = id + '_' + type;
+  globalVotes[docId] = val;
+  movePill(id, type, val);
+  updateBadges(id);
+  db.collection("votes").doc(docId).set({ tripId: id, type: type, value: val, date: TODAY, time: Date.now() })
+    .catch(() => { delete globalVotes[docId]; });
+}
+
+function updateBadges(tripId) {
+  const myO = globalVotes[tripId + '_occ'];
+  const myT = globalVotes[tripId + '_time'];
+  document.querySelectorAll('[data-badges-id="' + tripId + '"]').forEach(el => {
+    let h = '';
+    if (myO === 'ple')  h += '<span class="badge br">Ple</span>';
+    if (myO === 'mig')  h += '<span class="badge bo">Mig ple</span>';
+    if (myO === 'buit') h += '<span class="badge bg">Buit</span>';
+    if (myT === 'tard') h += '<span class="badge ba">Retard</span>';
+    if (myT === 'punt') h += '<span class="badge bg">Puntual</span>';
+    el.innerHTML = h;
+  });
+}
+
+function movePill(id, type, val) {
+  const wrap = document.getElementById('pill-' + id + '-' + type);
+  if (!wrap) return;
+  const track = wrap.querySelector('.pill-track');
+  const opts = wrap.querySelectorAll('.pill-opt');
+  opts.forEach(o => o.classList.remove('active','active-buit','active-mig','active-ple','active-punt','active-tard'));
+  let targetOpt = null;
+  opts.forEach(o => { if (o.dataset.val === val) targetOpt = o; });
+  if (!targetOpt) return;
+  // Canviar color via data-color (CSS attribute selector) → transició fluida
+  track.dataset.color = val;
+  track.style.left = targetOpt.offsetLeft + 'px';
+  track.style.width = targetOpt.offsetWidth + 'px';
+  targetOpt.classList.add('active', 'active-' + val);
+}
+
+function initPills() {
+  document.querySelectorAll('.pill-wrap').forEach(wrap => {
+    const id = wrap.dataset.id;
+    const type = wrap.dataset.type;
+    if (!id || !type) return;
+    const val = globalVotes[id + '_' + type];
+    if (!val) return;
+    const track = wrap.querySelector('.pill-track');
+    const opts = wrap.querySelectorAll('.pill-opt');
+    track.style.transition = 'none';
+    track.dataset.color = val;
+    opts.forEach(o => o.classList.remove('active','active-buit','active-mig','active-ple','active-punt','active-tard'));
+    let targetOpt = null;
+    opts.forEach(o => { if (o.dataset.val === val) targetOpt = o; });
+    if (targetOpt) {
+      track.style.left = targetOpt.offsetLeft + 'px';
+      track.style.width = targetOpt.offsetWidth + 'px';
+      targetOpt.classList.add('active','active-' + val);
+    }
+    requestAnimationFrame(() => { track.style.transition = ''; });
+  });
+}
+
+function rateTrip(id, stars) {
+  myRatings[id] = stars;
+  // Actualitzar NOMÉS el rating sense re-renderitzar tot (evita que es plegui el passed)
+  const wrap = document.querySelector('[data-rating-id="' + id + '"]');
+  if (wrap) {
+    wrap.querySelectorAll('.star').forEach((s, i) => {
+      s.textContent = i < stars ? '⭐' : '☆';
+      s.classList.toggle('active', i < stars);
+    });
+  }
+  const docId = 'rating_' + id + '_' + sessionId;
+  db.collection("ratings").doc(docId).set({ tripId: id, stars: stars, date: TODAY, time: Date.now() })
+    .catch(() => {});
+}
+
+function askConfirmPassed(id) {
+  // Mostrem el modal de doble verificació
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <h3>Confirmes que ja ha passat?</h3>
+      <p>Estàs segur que el bus ja ha passat per la teva parada? Això avisarà a tots els usuaris.</p>
+      <div class="confirm-btns">
+        <button class="confirm-no" onclick="closeConfirm()">Cancel·lar</button>
+        <button class="confirm-yes" onclick="doConfirmPassed('${id}')">Sí, ja ha passat</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function closeConfirm() {
+  const el = document.getElementById('confirm-overlay');
+  if (el) el.remove();
+}
+
+function doConfirmPassed(id) {
+  closeConfirm();
+  if (sessionStorage.getItem('confirmed_' + id)) return;
+  sessionStorage.setItem('confirmed_' + id, '1');
+  if (!globalConfirmed[id]) globalConfirmed[id] = 0;
+  globalConfirmed[id] += 1;
+  // Actualitzar botó directament sense re-renderitzar
+  const btn = document.querySelector(`.btn-passed[data-trip-id="${id}"]`);
+  if (btn) {
+    const dep = btn.dataset.dep || '';
+    btn.classList.add('done');
+    btn.disabled = true;
+    btn.innerHTML = `✓ El bus de les ${dep} ja ha passat · ${globalConfirmed[id]} ho confirmen`;
+    // Aura verda al card
+    const card = btn.closest('.bus-card');
+    if (card) card.classList.add('confirmed');
+  }
+  const docId = 'confirmed_' + id + '_' + sessionId;
+  db.collection("confirmed").doc(docId).set({ tripId: id, date: TODAY, time: Date.now() })
+    .catch(() => {});
+}
+function ts(id) {
+  // Primer mostrem el modal de doble verificació
+  const overlay = document.createElement('div');
+  overlay.className = 'confirm-overlay';
+  overlay.id = 'confirm-overlay';
+  overlay.innerHTML = `
+    <div class="confirm-box">
+      <h3>Compartir ubicació</h3>
+      <p>Estàs segur que vols compartir la teva ubicació actual? Tots els usuaris la podran veure.</p>
+      <div class="confirm-btns">
+        <button class="confirm-no" onclick="closeConfirm()">Cancel·lar</button>
+        <button class="confirm-yes" onclick="doShareLocation('${id}')">Sí, compartir</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function doShareLocation(id) {
+  closeConfirm();
+  if (!navigator.geolocation) { alert("Navegador sense geolocalitzacio."); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const hora = new Date().getHours() + ':' + String(new Date().getMinutes()).padStart(2,'0');
+      sharing[id] = true;
+      userLocations[id] = { lat, lng, hora, _time: Date.now() };
+      // Actualitzar el botó
+      const btn = document.querySelector('[data-share-id="' + id + '"]');
+      if (btn) { btn.classList.add('on'); btn.innerHTML = '📍 Ubicació actualitzada'; }
+      // Injectar mapa just sota el botó sense re-renderitzar el card
+      const mapEl = document.getElementById('map-' + id);
+      if (mapEl) {
+        const bbox = (lng-0.01) + '%2C' + (lat-0.01) + '%2C' + (lng+0.01) + '%2C' + (lat+0.01);
+        mapEl.style.marginTop = '10px';
+        mapEl.innerHTML = '<iframe width="100%" height="180" style="border-radius:10px;border:0;" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=' + bbox + '&marker=' + lat + '%2C' + lng + '"></iframe><div style="font-size:10px;color:#555;text-align:center;margin-top:3px;">Ubicació reportada a les ' + hora + '</div>';
+      }
+      db.collection("locations").doc(id).set({ tripId: id, lat, lng, hora, date: TODAY, time: Date.now() });
+    },
+    () => { alert("No s'ha pogut obtenir la ubicacio. Dona permisos de localitzacio."); }
+  );
+}
+
+// Color gris mentre no s'ha seleccionat res
+function updateSelectColor(sel) {
+  // Deprecated: el dropdown custom gestiona el color
+}
+
+// Els selectors s'inicialitzen quan l'usuari entra a l'app
+// No els cridem aqui perque app-content esta amagat i getElementById retorna null
+// ── DROPDOWN CUSTOM ──────────────────────────────────────────────────────
+let dropdownData = { orig: [], dest: [] };
+let dropdownOpen = null;
+
+function buildDropdown(which, items) {
+  dropdownData[which] = items;
+  const inner = document.getElementById('cs-' + which + '-inner');
+  if (!inner) return;
+  // Usar addEventListener en lloc d'onclick per evitar problemes amb cometes
+  inner.innerHTML = items.map(it =>
+    `<div class="custom-option" data-val="${it.val}" data-which="${which}">${it.label}</div>`
+  ).join('');
+  inner.querySelectorAll('.custom-option').forEach(el => {
+    el.addEventListener('click', () => {
+      selectOption(el.dataset.which, el.dataset.val, el.textContent);
+    });
+  });
+}
+
+function toggleDropdown(which) {
+  const dropdown = document.getElementById('cs-' + which + '-dropdown');
+  const trigger = document.getElementById('cs-' + which + '-trigger');
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('open');
+  closeAllDropdowns();
+  if (!isOpen) {
+    // Calcular posició vertical basat en el trigger
+    const rect = trigger.getBoundingClientRect();
+    dropdown.style.top = (rect.bottom + 6) + 'px';
+    dropdown.classList.add('open');
+    trigger.classList.add('open');
+    dropdownOpen = which;
+  }
+}
+
+function closeAllDropdowns() {
+  ['orig','dest'].forEach(w => {
+    const d = document.getElementById('cs-' + w + '-dropdown');
+    const t = document.getElementById('cs-' + w + '-trigger');
+    if (d) d.classList.remove('open');
+    if (t) t.classList.remove('open');
+  });
+  dropdownOpen = null;
+}
+
+// Definició de parades en ordre per filtrat
+const STOPS_MB = [
+  'manresa_est','manresa_val','manresa_hos','castellgali','st_vicenc_pi',
+  'monistrol_alv','monistrol_gom','olesa_clos','olesa_cat',
+  'bcn_uni','bcn_palau','bcn_mc','bcn_macia','bcn_munt','bcn_gran'
+];
+const STOPS_BM = [
+  'bcn_gran','bcn_corsega','bcn_mc','bcn_rei','bcn_edu',
+  'olesa_oli','olesa_clos','monist_gom','monist_balm',
+  'st_pi','cast_fa','man_hos','man_vall','man_est'
+];
+
+function selectOption(which, val, label) {
+  const labelEl = document.getElementById('cs-' + which + '-label');
+  const trigger = document.getElementById('cs-' + which + '-trigger');
+  if (labelEl) labelEl.textContent = label;
+  if (trigger) trigger.classList.add('selected');
+  const inner = document.getElementById('cs-' + which + '-inner');
+  if (inner) inner.querySelectorAll('.custom-option').forEach(o => {
+    o.classList.toggle('active', o.dataset.val === val);
+  });
+  const sel = document.getElementById('sel-' + which);
+  if (sel) {
+    let found = false;
+    for (let o of sel.options) { if (o.value === val) { found = true; break; } }
+    if (!found) { const opt = document.createElement('option'); opt.value = val; opt.text = label; sel.add(opt); }
+    sel.value = val;
+  }
+  closeAllDropdowns();
+
+  // Si hem seleccionat origen, filtrar les opcions de destí
+  if (which === 'orig') {
+    filterDestByOrig(val);
+  }
+}
+
+function filterDestByOrig(origVal) {
+  const stops = currentDir === 'bm' ? STOPS_BM : STOPS_MB;
+  const origIdx = stops.indexOf(origVal);
+  if (origIdx === -1) return;
+  // Destí = totes les parades DESPRÉS de l'origen
+  const validDest = stops.slice(origIdx + 1);
+  const inner = document.getElementById('cs-dest-inner');
+  if (!inner) return;
+  inner.querySelectorAll('.custom-option').forEach(opt => {
+    const isValid = validDest.includes(opt.dataset.val);
+    opt.style.display = isValid ? '' : 'none';
+    opt.style.opacity = isValid ? '1' : '0.3';
+    opt.style.pointerEvents = isValid ? '' : 'none';
+  });
+  // Reset destí si la selecció actual ja no és vàlida
+  const selDest = document.getElementById('sel-dest');
+  if (selDest && selDest.value && !validDest.includes(selDest.value)) {
+    selDest.value = '';
+    const destLabel = document.getElementById('cs-dest-label');
+    const destTrigger = document.getElementById('cs-dest-trigger');
+    if (destLabel) destLabel.textContent = 'Selecciona destinació';
+    if (destTrigger) destTrigger.classList.remove('selected');
+  }
+}
+
+// Tancar dropdown en clicar fora
+document.addEventListener('click', e => {
+  if (!e.target.closest('.custom-select') && dropdownOpen) closeAllDropdowns();
+});
+
+function buildDropdownFromOpts(which, optsHtml, placeholder) {
+  // Parsejar les opcions de l'HTML string (OPTS_MB_ORIG etc.)
+  const tmp = document.createElement('div');
+  tmp.innerHTML = '<select>' + optsHtml + '</select>';
+  const options = Array.from(tmp.querySelectorAll('option[value]'));
+  const items = options.filter(o => o.value).map(o => ({ val: o.value, label: o.textContent }));
+  buildDropdown(which, items);
+  // Reset label
+  const labelEl = document.getElementById('cs-' + which + '-label');
+  const trigger = document.getElementById('cs-' + which + '-trigger');
+  if (labelEl) labelEl.textContent = placeholder;
+  if (trigger) trigger.classList.remove('selected');
+  // Buidar select ocult i omplir-lo
+  const sel = document.getElementById('sel-' + which);
+  if (sel) { sel.innerHTML = optsHtml; sel.value = ''; }
+  // Netejar actiu
+  const inner = document.getElementById('cs-' + which + '-inner');
+  if (inner) inner.querySelectorAll('.custom-option').forEach(o => o.classList.remove('active'));
+}
+
+function initSelectors() {
+  // Ja no cal - el dropdown custom gestiona tot
+}
+
+// Parades Manresa->Barcelona
+const OPTS_MB_ORIG = `<option value="" disabled selected style="color:#bbb;">Selecciona parada d'origen</option>
+<option value="manresa_est">Manresa — Estació d'autobusos</option>
+<option value="manresa_val">Manresa — Plaça Valldaura</option>
+<option value="manresa_hos">Manresa — Hospital de St. Joan de Déu</option>
+<option value="castellgali">Castellgalí — La Fàbrica</option>
+<option value="st_vicenc_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+<option value="monistrol_alv">Monistrol — Parc de l'Alvèrnia</option>
+<option value="monistrol_gom">Monistrol — Can Gomis</option>
+<option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+<option value="olesa_cat">Olesa de Montserrat — Pl. Catalunya</option>
+<option value="bcn_uni">Barcelona — Zona Universitària</option>
+<option value="bcn_palau">Barcelona — Palau Reial</option>
+<option value="bcn_mc">Barcelona — Maria Cristina</option>
+<option value="bcn_macia">Barcelona — Pl. Francesc Macià</option>
+<option value="bcn_munt">Barcelona — Muntaner · Còrsega</option>
+<option value="bcn_gran">Barcelona — Gran Via de les Corts, 612</option>`;
+const OPTS_MB_DEST = OPTS_MB_ORIG.replace("Selecciona parada d'origen","Selecciona destinació");
+
+// Parades Barcelona->Manresa
+const OPTS_BM_ORIG = `<option value="" disabled selected style="color:#444;">Selecciona parada d'origen</option>
+<option value="bcn_via">Barcelona — Gran Via de les Corts, 612</option>
+<option value="bcn_167">Barcelona — Còrsega, 167</option>
+<option value="bcn_marc">Barcelona — Maria Cristina</option>
+<option value="bcn_rei">Barcelona — Palau Reial</option>
+<option value="bcn_edu">Barcelona — Zona Universitària</option>
+<option value="olesa_oli">Olesa de Montserrat — Plaça de l'Oli</option>
+<option value="olesa_clos">Olesa de Montserrat — Rotonda Els Closos</option>
+<option value="monist_gom">Monistrol de Montserrat — Can Gomis</option>
+<option value="monist_balm">Monistrol de Montserrat — C. Balmes (Pont Gòtic)</option>
+<option value="st_pi">St. Vicenç de Castellet — Plaça del Pi</option>
+<option value="cast_fa">Castellgalí — La Fàbrica</option>
+<option value="man_hos">Manresa — Hospital de Sant Joan de Déu</option>
+<option value="man_vall">Manresa — Plaça Valldaura</option>
+<option value="man_est">Manresa — Estació d'autobusos</option>`;
+const OPTS_BM_DEST = OPTS_BM_ORIG.replace("Selecciona parada d'origen","Selecciona destinació");
+
+let currentDir = 'mb';
+
+function toggleTheme() {
+  const body = document.body;
+  const isLight = body.classList.contains('light');
+  // Animació icona
+  ['theme-icon','theme-icon-welcome'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('hide');
+    setTimeout(() => {
+      el.textContent = isLight ? '☀️' : '🌙';
+      el.classList.remove('hide');
+    }, 250);
+  });
+  if (isLight) {
+    body.classList.remove('light');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    body.classList.add('light');
+    localStorage.setItem('theme', 'light');
+  }
+}
+
+function syncThemeBtns() {
+  const isLight = document.body.classList.contains('light');
+  ['theme-icon','theme-icon-welcome'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = isLight ? '🌙' : '☀️';
+  });
+}
+
+// Aplicar tema desat i sincronitzar botons
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+  }
+  // Sincronitzem quan el DOM carrega
+  document.addEventListener('DOMContentLoaded', syncThemeBtns);
+})();
+
+function enterApp(dir) {
+  currentDir = dir;
+  const ws = document.getElementById('welcome-screen');
+  const ac = document.getElementById('app-content');
+
+  // Animació: welcome surt cap a l'esquerra, app entra des de la dreta
+  ws.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+  ws.style.opacity = '0';
+  ws.style.transform = 'translateX(-30px)';
+
+  setTimeout(() => {
+    ws.style.display = 'none';
+    ws.style.transition = '';
+    ws.style.opacity = '';
+    ws.style.transform = '';
+
+    ac.style.opacity = '0';
+    ac.style.transform = 'translateX(30px)';
+    ac.style.transition = 'none';
+    ac.style.display = 'block';
+
+    requestAnimationFrame(() => {
+      ac.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+      requestAnimationFrame(() => {
+        ac.style.opacity = '1';
+        ac.style.transform = 'translateX(0)';
+        ac.classList.add('visible');
+      });
+    });
+  }, 260);
+
+  // Capçalera
+  if (dir === 'mb') {
+    document.getElementById('header-title').textContent = 'Manresa → Barcelona';
+    document.getElementById('header-sub').textContent = 'Monbus E22 · E23';
+    buildDropdownFromOpts('orig', OPTS_MB_ORIG, "Selecciona parada d'origen");
+    buildDropdownFromOpts('dest', OPTS_MB_DEST, "Selecciona destinació");
+  } else {
+    document.getElementById('header-title').textContent = 'Barcelona → Manresa';
+    document.getElementById('header-sub').textContent = 'Monbus E22 · E23';
+    buildDropdownFromOpts('orig', OPTS_BM_ORIG, "Selecciona parada d'origen");
+    buildDropdownFromOpts('dest', OPTS_BM_DEST, "Selecciona destinació");
+  }
+
+  initSelectors();
+  document.getElementById('results').innerHTML = '';
+
+  // Sincronitzar text del botó amb el tema actual
+  syncThemeBtns();
+
+  if (!window._appInited) {
+    window._appInited = true;
+    loadVotes();
+    setDay(currentDay);
+  }
+}
+
+function backToWelcome() {
+  const ac = document.getElementById('app-content');
+  const ws = document.getElementById('welcome-screen');
+
+  // App surt cap a la dreta
+  ac.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+  ac.style.opacity = '0';
+  ac.style.transform = 'translateX(30px)';
+
+  setTimeout(() => {
+    ac.style.display = 'none';
+    ac.style.opacity = '';
+    ac.style.transform = '';
+    ac.style.transition = '';
+    ac.classList.remove('visible');
+    document.getElementById('results').innerHTML = '';
+
+    // Welcome entra des de l'esquerra
+    ws.style.opacity = '0';
+    ws.style.transform = 'translateX(-30px)';
+    ws.style.transition = 'none';
+    ws.style.display = 'flex';
+    requestAnimationFrame(() => {
+      ws.style.transition = 'opacity 0.28s ease, transform 0.28s ease';
+      requestAnimationFrame(() => {
+        ws.style.opacity = '1';
+        ws.style.transform = 'translateX(0)';
+      });
+    });
+  }, 240);
+}
+
+loadVotes();
+setDay(currentDay);
+
+// Netejar ubicacions caducades cada minut
+setInterval(() => {
+  let changed = false;
+  Object.keys(userLocations).forEach(tripId => {
+    if (userLocations[tripId]._time && Date.now() - userLocations[tripId]._time > 5 * 60 * 1000) {
+      delete userLocations[tripId];
+      changed = true;
+    }
+  });
+  if (changed) doSearch();
+}, 60 * 1000);
+</script>
+</body>
+</html>
