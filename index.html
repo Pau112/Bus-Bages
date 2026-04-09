@@ -407,7 +407,12 @@ const db = firebase.firestore();
     let globalHistory = {}; // { tripId: { occ: {ple:N, mig:N, buit:N}, time: {tard:N, punt:N}, days:N } }
     let myRatings = {};
     let globalConfirmed = {};
-    const sessionId = Math.random().toString(36).slice(2);
+    // sessionId persistent: es genera una sola vegada i es guarda a localStorage
+    let sessionId = localStorage.getItem('busbages_uid');
+    if (!sessionId) {
+      sessionId = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+      localStorage.setItem('busbages_uid', sessionId);
+    }
 const T = {
   feiner: [
     {id:'f1',line:'E22',times:{
@@ -1247,6 +1252,10 @@ function loadVotes() {
       if (!raw[d.tripId]) raw[d.tripId] = { sum: 0, count: 0 };
       raw[d.tripId].sum += d.stars;
       raw[d.tripId].count += 1;
+      // Recuperar la nostra valoració si el doc és nostre
+      if (doc.id === 'rating_' + d.tripId + '_' + sessionId) {
+        myRatings[d.tripId] = d.stars;
+      }
     });
     globalRatings = raw;
     // Actualitzar ratings al DOM sense re-renderitzar tot
@@ -1591,7 +1600,7 @@ function renderCard(trip, orig, dest, type) {
 
   const confirmedCount = globalConfirmed[trip.id] || 0;
   const isConfirmed = confirmedCount > 0;
-  const alreadyConfirmed = sessionStorage.getItem('confirmed_' + trip.id);
+  const alreadyConfirmed = localStorage.getItem('confirmed_' + TODAY + '_' + trip.id);
 
   // Badges només per a busos interactius (passat i proper)
   let occBadge = !interactive ? '' :
@@ -1846,8 +1855,8 @@ function closeConfirm() {
 
 function doConfirmPassed(id) {
   closeConfirm();
-  if (sessionStorage.getItem('confirmed_' + id)) return;
-  sessionStorage.setItem('confirmed_' + id, '1');
+  if (localStorage.getItem('confirmed_' + TODAY + '_' + id)) return;
+  localStorage.setItem('confirmed_' + TODAY + '_' + id, '1');
   if (!globalConfirmed[id]) globalConfirmed[id] = 0;
   globalConfirmed[id] += 1;
   // Actualitzar botó directament sense re-renderitzar
