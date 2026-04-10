@@ -286,6 +286,7 @@
     body.light .ds-btn.active-f { background: #EAF3DE; color: #3B6D11; border-color: #97C459; }
     .votes-count { font-size: 11px; color: #444; margin-top: 4px; }
 </style>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -1125,9 +1126,38 @@ function setDay(d) {
   doSearch();
 }
 
-// ══ SISTEMA DE NOTIFICACIONS ══════════════════════════════════════════
-// Cooldown per evitar spam: max 1 notificació per trip cada 5 minuts
+// ══ SISTEMA DE NOTIFICACIONS FCM ══════════════════════════════════════
 const notifCooldown = {};
+const VAPID_KEY = 'BAqJYqcu2l_Ic1hKQvedf6t8otCMf_Zp29C6SAMcfPpZxefb3nETX2-1LxdAfjiO1D_BlcAQx2_Y1xJ-i89v6z8';
+let messaging = null;
+let fcmToken = null;
+
+// Inicialitzar FCM i registrar el Service Worker
+async function initFCM() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/Bus-Bages/firebase-messaging-sw.js');
+    messaging = firebase.messaging();
+    // Escoltar missatges amb la app oberta
+    messaging.onMessage(payload => {
+      const { title, body, tripId } = payload.data;
+      handleIncomingNotif(title, body, tripId);
+    });
+  } catch(e) {
+    console.warn('FCM init error:', e);
+  }
+}
+
+async function getFCMToken() {
+  if (!messaging) return null;
+  try {
+    const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+    return token;
+  } catch(e) {
+    console.warn('FCM token error:', e);
+    return null;
+  }
+}
 
 async function requestNotifPermission() {
   if (!('Notification' in window)) return false;
@@ -1142,17 +1172,30 @@ function toggleBell(tripId, dep) {
   const isOn = localStorage.getItem(key) === '1';
 
   if (isOn) {
-    // Desactivar
     localStorage.removeItem(key);
+    // Eliminar subscripció de Firestore
+    if (fcmToken) {
+      db.collection('subscriptions').doc(fcmToken + '_' + tripId).delete().catch(() => {});
+    }
     updateBellUI(tripId, false);
     showToast('🔕 Notificacions desactivades per aquest bus');
   } else {
-    // Activar - demanar permís
-    requestNotifPermission().then(granted => {
+    requestNotifPermission().then(async granted => {
       if (granted) {
         localStorage.setItem(key, '1');
         updateBellUI(tripId, true);
-        showToast('\ud83d\udd14 T\'avisarem si hi ha canvis en el bus de les ' + dep);
+        showToast('🔔 T\'avisarem si hi ha canvis en el bus de les ' + dep);
+        // Obtenir token FCM i guardar subscripció a Firestore
+        if (!fcmToken) fcmToken = await getFCMToken();
+        if (fcmToken) {
+          db.collection('subscriptions').doc(fcmToken + '_' + tripId).set({
+            token: fcmToken,
+            tripId: tripId,
+            dep: dep,
+            date: TODAY,
+            time: Date.now()
+          }).catch(() => {});
+        }
       } else {
         showToast('⚠️ Has de permetre notificacions als ajustos del mòbil');
       }
@@ -1162,8 +1205,9 @@ function toggleBell(tripId, dep) {
 
 function updateBellUI(tripId, active) {
   document.querySelectorAll('.bell-btn').forEach(btn => {
-    if (btn.closest('[data-trip-check="' + tripId + '"]') ||
-        btn.getAttribute('onclick')?.includes(tripId)) {
+    const onclick = btn.getAttribute('onclick') || '';
+    const matches = onclick.match(/toggleBell\('([^']+)'/);
+    if (matches && matches[1] === tripId) {
       btn.classList.toggle('subscribed', active);
       btn.classList.add('active');
       setTimeout(() => btn.classList.remove('active'), 600);
@@ -1171,20 +1215,28 @@ function updateBellUI(tripId, active) {
   });
 }
 
-function sendNotif(title, body, tripId) {
-  // Cooldown: no enviar si ja hem enviat una notif per aquest trip fa menys de 5 min
+function handleIncomingNotif(title, body, tripId) {
   const now = Date.now();
   if (notifCooldown[tripId] && now - notifCooldown[tripId] < 5 * 60 * 1000) return;
   if (!localStorage.getItem('bell_' + tripId)) return;
-  if (Notification.permission !== 'granted') return;
   notifCooldown[tripId] = now;
-  new Notification(title, {
-    body: body,
-    icon: 'icon.png',
-    badge: 'icon.png',
-    tag: tripId, // Evita notificacions duplicades (substitueix l'anterior)
-  });
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: 'icon.png', badge: 'icon.png', tag: tripId });
+  }
 }
+
+function sendNotif(title, body, tripId) {
+  // Aquesta funció ara escriu a Firestore i el backend s'encarrega d'enviar la push
+  // També mostra notificació local si la app està oberta
+  handleIncomingNotif(title, body, tripId);
+  // Escriure event a Firestore perquè el trigger enviï push als subscrits
+  db.collection('notif_events').add({
+    tripId, title, body, date: TODAY, time: Date.now()
+  }).catch(() => {});
+}
+
+// Iniciar FCM quan carrega la pàgina
+initFCM();
 
 // Toast missatge temporal
 function showToast(msg) {
