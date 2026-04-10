@@ -19,7 +19,7 @@
     body.light .day-simple { background: #EAF3DE; border-color: #97C459; color: #111; }
 
     /* ── SEARCH BOX ── */
-    .search-box { background: #1a1a1a; margin: 10px 12px 0; border-radius: 12px; border: 0.5px solid #2a2a2a; transition: background 0.4s; position: relative; z-index: 10; }
+    .search-box { background: #1a1a1a; margin: 10px 12px 0; border-radius: 12px; border: 0.5px solid #2a2a2a; transition: background 0.4s; position: relative; z-index: 10; overflow: visible; }
     .search-row { display: flex; align-items: center; gap: 10px; padding: 0; cursor: pointer; position: relative; }
     .search-row:first-child { border-bottom: 0.5px solid #2a2a2a; }
     .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-left: 14px; }
@@ -32,7 +32,7 @@
     .custom-select-trigger svg { flex-shrink: 0; transition: transform 0.25s ease; opacity: 0.4; }
     .custom-select-trigger.open svg { transform: rotate(180deg); }
     /* Dropdown panel */
-    .custom-dropdown { position: fixed; left: 12px; right: 12px; background: #1e1e1e; border: 0.5px solid #2a2a2a; border-radius: 12px; z-index: 999; overflow: hidden; max-height: 0; opacity: 0; transform: translateY(-8px); transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, transform 0.25s ease; pointer-events: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+    .custom-dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #1e1e1e; border: 0.5px solid #2a2a2a; border-radius: 12px; z-index: 999; overflow: hidden; max-height: 0; opacity: 0; transform: translateY(-8px); transition: max-height 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease, transform 0.25s ease; pointer-events: none; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
     .custom-dropdown.open { max-height: 280px; opacity: 1; transform: translateY(0); pointer-events: all; }
     .custom-dropdown-inner { overflow-y: auto; max-height: 280px; }
     .custom-option { padding: 13px 16px; font-size: 15px; color: #e0e0e0; cursor: pointer; transition: background 0.15s, color 0.15s; border-bottom: 0.5px solid rgba(255,255,255,0.06); }
@@ -1127,7 +1127,7 @@ function setDay(d) {
 }
 
 // ══ SISTEMA DE NOTIFICACIONS FCM ══════════════════════════════════════
-const notifCooldown = {};
+const notifCooldown = { occ: {}, time: {}, loc: {}, passed: {} };
 const VAPID_KEY = 'BAqJYqcu2l_Ic1hKQvedf6t8otCMf_Zp29C6SAMcfPpZxefb3nETX2-1LxdAfjiO1D_BlcAQx2_Y1xJ-i89v6z8';
 let messaging = null;
 let fcmToken = null;
@@ -1215,23 +1215,25 @@ function updateBellUI(tripId, active) {
   });
 }
 
-function handleIncomingNotif(title, body, tripId) {
+// Mapa tripId -> hora de sortida, per missatges llegibles
+const globalTripDep = {};
+
+function handleIncomingNotif(title, body, tripId, kind) {
+  const cat = kind || 'other';
   const now = Date.now();
-  if (notifCooldown[tripId] && now - notifCooldown[tripId] < 5 * 60 * 1000) return;
+  if (!notifCooldown[cat]) notifCooldown[cat] = {};
+  if (notifCooldown[cat][tripId] && now - notifCooldown[cat][tripId] < 5 * 60 * 1000) return;
   if (!localStorage.getItem('bell_' + tripId)) return;
-  notifCooldown[tripId] = now;
+  notifCooldown[cat][tripId] = now;
   if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: 'icon.png', badge: 'icon.png', tag: tripId });
+    new Notification(title, { body, icon: 'icon.png', badge: 'icon.png', tag: tripId + '_' + cat });
   }
 }
 
-function sendNotif(title, body, tripId) {
-  // Aquesta funció ara escriu a Firestore i el backend s'encarrega d'enviar la push
-  // També mostra notificació local si la app està oberta
-  handleIncomingNotif(title, body, tripId);
-  // Escriure event a Firestore perquè el trigger enviï push als subscrits
+function sendNotif(title, body, tripId, kind) {
+  handleIncomingNotif(title, body, tripId, kind);
   db.collection('notif_events').add({
-    tripId, title, body, date: TODAY, time: Date.now()
+    tripId, title, body, kind: kind || 'other', date: TODAY, time: Date.now()
   }).catch(() => {});
 }
 
@@ -1289,8 +1291,9 @@ function loadVotes() {
       if (myT) movePill(tripId, 'time', myT);
       // Notificació si el bus va tard o ple (només canvis nous, no l'estat inicial)
       if (votesInitDone) {
-        if (myT === 'tard') sendNotif('🚌 Bus amb retard', 'El bus de les ' + tripId + ' va amb retard', tripId);
-        if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + tripId + ' va ple', tripId);
+        const dep = globalTripDep[tripId] || tripId;
+        if (myT === 'tard') sendNotif('🚌 Bus amb retard', 'El bus de les ' + dep + ' va amb retard', tripId, 'time');
+        if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + dep + ' va ple', tripId, 'occ');
       }
     });
     if (!votesInitDone) setTimeout(() => { votesInitDone = true; }, 3000);
@@ -1330,7 +1333,7 @@ function loadVotes() {
         const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
-        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId);
+        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId, 'loc');
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
@@ -1366,14 +1369,17 @@ function loadVotes() {
         notifiedPassed.add(d.tripId);
         const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
         const dep = btn ? btn.dataset.dep : '';
-        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId);
+        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId, 'passed');
       });
     });
   });
 
-  // Historial per prediccions: només en càrrega inicial
+  // Historial per prediccions: només en càrrega inicial (una sola vegada)
+  let historyLoaded = false;
   db.collection("votes").onSnapshot(snapshot => {
     if (snapshot.metadata.fromCache) return; // esperar dades reals
+    if (historyLoaded) return; // ja carregat, ignorar snapshots posteriors
+    historyLoaded = true;
     const hist = {};
     snapshot.forEach(doc => {
       const v = doc.data();
@@ -1388,9 +1394,8 @@ function loadVotes() {
       }
     });
     Object.keys(hist).forEach(id => { hist[id].days = hist[id].days.size; });
-    const prevHistory = JSON.stringify(globalHistory);
     globalHistory = hist;
-    if (JSON.stringify(hist) !== prevHistory) doSearch();
+    doSearch();
   });
 }
 
@@ -1656,6 +1661,8 @@ function ratingHtml(tripId) {
 
 function renderCard(trip, orig, dest, type) {
   const dep = trip.times[orig];
+  // Guardar hora de sortida per usar-la als missatges de notificació
+  if (dep) globalTripDep[trip.id] = dep;
   const arr = trip.times[dest];
   const isPassed = type === 'passed';
   const isNext = type === 'next';
@@ -2028,9 +2035,7 @@ function toggleDropdown(which) {
   const isOpen = dropdown.classList.contains('open');
   closeAllDropdowns();
   if (!isOpen) {
-    // Calcular posició vertical basat en el trigger
-    const rect = trigger.getBoundingClientRect();
-    dropdown.style.top = (rect.bottom + 6) + 'px';
+    // posicionament via CSS (position:absolute dins .custom-select)
     dropdown.classList.add('open');
     trigger.classList.add('open');
     dropdownOpen = which;
