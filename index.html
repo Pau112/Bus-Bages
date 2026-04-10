@@ -1326,7 +1326,7 @@ function loadVotes() {
   // Ubicacions: sempre externes (la nostra ja l'actualitzem localment)
   let locInitDone = false;
   let locReady = false;
-  setTimeout(() => { locReady = true; }, 4000);
+  // locReady s'activa quan el primer snapshot arriba (dades reals carregades)
   db.collection("locations").onSnapshot(snapshot => {
     let changed = false;
     snapshot.docChanges().forEach(change => {
@@ -1337,10 +1337,13 @@ function loadVotes() {
         const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
-        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú ha compartit la seva ubicació en el bus de les ' + d.hora, d.tripId, 'loc');
+        // Usar l'hora de sortida del bus (no l'hora del rellotge quan s'ha compartit)
+        const depHora = globalTripDep[d.tripId] || d.tripId;
+        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú és al bus de les ' + depHora, d.tripId, 'loc');
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
+    if (!locReady) locReady = true; // primer snapshot carregat
     locInitDone = true;
   });
 
