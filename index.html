@@ -1300,7 +1300,7 @@ function loadVotes() {
         if (myO === 'ple') sendNotif('🚌 Bus ple', 'El bus de les ' + dep + ' va ple', tripId, 'occ');
       }
     });
-    if (!votesInitDone) setTimeout(() => { votesInitDone = true; }, 3000);
+    if (!votesInitDone) votesInitDone = true; // marcar després del primer snapshot
   });
 
   // Ratings: només re-renderitzar per canvis externs
@@ -1324,9 +1324,8 @@ function loadVotes() {
   });
 
   // Ubicacions: sempre externes (la nostra ja l'actualitzem localment)
-  let locInitDone = false;
+  // locReady: true un cop el primer snapshot inicial s'ha processat completament
   let locReady = false;
-  // locReady s'activa quan el primer snapshot arriba (dades reals carregades)
   db.collection("locations").onSnapshot(snapshot => {
     let changed = false;
     snapshot.docChanges().forEach(change => {
@@ -1337,14 +1336,17 @@ function loadVotes() {
         const isNew = !userLocations[d.tripId];
         userLocations[d.tripId] = { lat: d.lat, lng: d.lng, hora: d.hora, _time: d.time };
         changed = true;
-        // Usar l'hora de sortida del bus (no l'hora del rellotge quan s'ha compartit)
-        const depHora = globalTripDep[d.tripId] || d.tripId;
-        if (isNew && locReady) sendNotif('📍 Ubicació compartida', 'Algú és al bus de les ' + depHora, d.tripId, 'loc');
+        // Notificar NOMÉS si ja hem carregat l'estat inicial (locReady)
+        // i és una ubicació nova (no la càrrega inicial)
+        if (locReady && isNew) {
+          const depHora = globalTripDep[d.tripId] || d.hora;
+          sendNotif('📍 Ubicació compartida', 'Algú és al bus de les ' + depHora, d.tripId, 'loc');
+        }
       } else { delete userLocations[d.tripId]; changed = true; }
     });
     if (changed) doSearch();
-    if (!locReady) locReady = true; // primer snapshot carregat
-    locInitDone = true;
+    // Marcar com a llest DESPRÉS de processar el primer snapshot
+    if (!locReady) locReady = true;
   });
 
   // Confirmacions: actualitzar comptador + notificació una sola vegada per trip
