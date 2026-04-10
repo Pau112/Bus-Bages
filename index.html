@@ -1223,7 +1223,11 @@ function handleIncomingNotif(title, body, tripId, kind) {
   const now = Date.now();
   if (!notifCooldown[cat]) notifCooldown[cat] = {};
   if (notifCooldown[cat][tripId] && now - notifCooldown[cat][tripId] < 5 * 60 * 1000) return;
-  if (!localStorage.getItem('bell_' + tripId)) return;
+  // La campana (bell) és necessària NOMÉS per tard/ple
+  // Per ubicació i "ja ha passat", notifiquem sempre que hi hagi permís de notificacions
+  const needsBell = (cat === 'time' || cat === 'occ');
+  if (needsBell && !localStorage.getItem('bell_' + tripId)) return;
+  if (!needsBell && Notification.permission !== 'granted') return;
   notifCooldown[cat][tripId] = now;
   if (Notification.permission === 'granted') {
     new Notification(title, { body, icon: 'icon.png', badge: 'icon.png', tag: tripId + '_' + cat });
@@ -1368,8 +1372,9 @@ function loadVotes() {
         if (notifiedPassed.has(d.tripId)) return;
         notifiedPassed.add(d.tripId);
         const btn = document.querySelector('.btn-passed[data-trip-id="' + d.tripId + '"]');
-        const dep = btn ? btn.dataset.dep : '';
-        sendNotif('🚌 Bus ja ha passat', 'El bus de les ' + dep + ' ja ha passat', d.tripId, 'passed');
+        const dep = (btn && btn.dataset.dep) ? btn.dataset.dep : (globalTripDep[d.tripId] || '');
+        const passedMsg = dep ? 'El bus de les ' + dep + ' ja ha passat' : 'Un bus ja ha passat';
+        sendNotif('🚌 Bus ja ha passat', passedMsg, d.tripId, 'passed');
       });
     });
   });
