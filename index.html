@@ -1514,28 +1514,8 @@ function updateBellUI(tripId, active) {
 // Mapa tripId -> hora de sortida, per missatges llegibles
 const globalTripDep = {};
 
-function handleIncomingNotif(title, body, tripId, kind) {
-  const cat = kind || 'other';
-  const now = Date.now();
-  if (!notifCooldown[cat]) notifCooldown[cat] = {};
-  if (notifCooldown[cat][tripId] && now - notifCooldown[cat][tripId] < 5 * 60 * 1000) return;
-  // La campana (bell) és necessària NOMÉS per tard/ple
-  // Per ubicació i "ja ha passat", notifiquem sempre que hi hagi permís de notificacions
-  const needsBell = (cat === 'time' || cat === 'occ');
-  if (needsBell && !localStorage.getItem('bell_' + tripId)) return;
-  if (!needsBell && Notification.permission !== 'granted') return;
-  notifCooldown[cat][tripId] = now;
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: 'icon.png', badge: 'icon.png', tag: tripId + '_' + cat });
-  }
-}
-
-function sendNotif(title, body, tripId, kind) {
-  handleIncomingNotif(title, body, tripId, kind);
-  db.collection('notif_events').add({
-    tripId, title, body, kind: kind || 'other', date: TODAY, time: Date.now()
-  }).catch(() => {});
-}
+function handleIncomingNotif() {}
+function sendNotif() {}
 
 // Iniciar FCM quan carrega la pàgina
 initFCM();
